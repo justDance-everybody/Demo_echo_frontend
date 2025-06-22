@@ -153,6 +153,7 @@ class MCPClientWrapper:
         logger.info(f"MCP客户端返回处理结果，可用工具: {result['tools']}")
         return result
     
+    # @stable(tested=2025-04-30, test_script=backend/test_api.py)
     async def execute_tool(self, tool_id: str, params: Dict[str, Any], target_server: Optional[str] = None) -> Dict[str, Any]:
         """
         执行工具 (通过MCP客户端代理)
@@ -165,6 +166,18 @@ class MCPClientWrapper:
         Returns:
             执行结果
         """
+        # 检查服务器是否存在
+        if target_server and not self.check_server_exists(target_server):
+            logger.error(f"目标MCP服务器 '{target_server}' 未在配置中找到")
+            return {
+                "tool_id": tool_id,
+                "success": False,
+                "error": {
+                    "code": "MCP_SERVER_NOT_FOUND",
+                    "message": f"目标MCP服务器 '{target_server}' 未在配置中找到"
+                }
+            }
+            
         # 确保已连接到目标或默认服务器
         await self._ensure_connected(target_server=target_server)
 
@@ -210,6 +223,25 @@ class MCPClientWrapper:
             }
         
         return result
+        
+    def check_server_exists(self, server_name: str) -> bool:
+        """
+        检查指定的服务器名称是否存在于配置中
+        
+        Args:
+            server_name: 服务器名称
+            
+        Returns:
+            如果服务器存在，返回True；否则返回False
+        """
+        if not self.client or not self.client.server_configs:
+            logger.warning("无法检查服务器，未加载MCP服务器配置")
+            return False
+            
+        exists = server_name in self.client.server_configs
+        if not exists:
+            logger.warning(f"MCP服务器 '{server_name}' 未在配置中找到")
+        return exists
 
 # 创建全局MCP客户端实例
 mcp_client = MCPClientWrapper() 

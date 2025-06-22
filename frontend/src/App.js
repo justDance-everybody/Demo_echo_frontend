@@ -1,41 +1,61 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Layout } from 'antd';
+import MainPage from './pages/MainPage/MainPage';
+import AuthPage from './pages/AuthPage';
+import ServicesPage from './pages/ServicesPage';
+import ServiceDetailPage from './pages/ServiceDetailPage';
+import Settings from './pages/Settings/index';
+import { ToastService } from './components/common/Toast';
+import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
-import { SessionProvider } from './contexts/SessionContext';
-import { UserConfigProvider } from './contexts/UserConfigContext';
-import VoiceAssistant from './pages/user/VoiceAssistant';
-import UserCenter from './pages/user/UserCenter';
-import Settings from './pages/Settings';
 import NavBar from './components/NavBar';
+import ProtectedRoute from './components/ProtectedRoute';
+import UserCenter from './pages/user/UserCenter';
+import TestPage from './tests/TestPage';
+import DeveloperConsole from './pages/DeveloperConsolePage/DeveloperConsolePage';
 import './App.css';
-
-const { Content, Footer } = Layout;
 
 function App() {
   return (
     <Router>
       <ThemeProvider>
-        <SessionProvider>
-          <UserConfigProvider>
-            <Layout className="layout" style={{ minHeight: '100vh' }}>
-              <NavBar />
-              <Content style={{ padding: '0 50px' }}>
-                <div className="site-layout-content" style={{ padding: '24px 0' }}>
-                  <Routes>
-                    <Route path="/" element={<VoiceAssistant />} />
-                    <Route path="/voice-assistant" element={<VoiceAssistant />} />
-                    <Route path="/user" element={<UserCenter />} />
-                    <Route path="/settings" element={<Settings />} />
-                  </Routes>
-                </div>
-              </Content>
-              <Footer style={{ textAlign: 'center' }}>
-                智能语音AI-Agent平台 ©{new Date().getFullYear()} 由MCP框架驱动
-              </Footer>
-            </Layout>
-          </UserConfigProvider>
-        </SessionProvider>
+        <AuthProvider>
+          <ToastService />
+          <div className="App">
+            <NavBar />
+            <div className="content-wrapper">
+              <Routes>
+                <Route path="/" element={<MainPage />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/services" element={<ServicesPage />} />
+                <Route path="/services/:id" element={<ServiceDetailPage />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/user" element={
+                  <ProtectedRoute>
+                    <UserCenter />
+                  </ProtectedRoute>
+                } />
+                <Route path="/developer" element={
+                  <ProtectedRoute requireRole="developer">
+                    <DeveloperConsole />
+                  </ProtectedRoute>
+                } />
+                <Route path="/developer/services/:id" element={
+                  <ProtectedRoute requireRole="developer">
+                    <DeveloperConsole />
+                  </ProtectedRoute>
+                } />
+                <Route path="/developer/apps/:id" element={
+                  <ProtectedRoute requireRole="developer">
+                    <DeveloperConsole />
+                  </ProtectedRoute>
+                } />
+                <Route path="/test" element={<TestPage />} />
+                <Route path="*" element={<div>页面不存在</div>} />
+              </Routes>
+            </div>
+          </div>
+        </AuthProvider>
       </ThemeProvider>
     </Router>
   );
