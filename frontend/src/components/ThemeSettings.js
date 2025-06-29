@@ -3,76 +3,78 @@ import styled from 'styled-components';
 import { useTheme } from '../contexts/ThemeContext';
 import StyleEditor from './StyleEditor';
 
-// 样式设置容器
-const SettingsContainer = styled.div`
-  padding: 1rem;
-  background-color: var(--card-bg, var(--surface));
-  border-radius: var(--border-radius, 8px);
-  box-shadow: var(--card-shadow, 0 2px 8px rgba(0, 0, 0, 0.15));
-`;
-
-// 标题
-const Title = styled.h2`
-  margin-bottom: 1rem;
-  font-size: 1.25rem;
-  color: var(--text-color);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+// 移除外层容器样式，让父组件控制
+const SettingsContent = styled.div`
+  /* 内容区域，不需要额外的背景和边框 */
 `;
 
 // 设置部分
 const Section = styled.div`
   margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+`;
+
+// 统一的设置行样式（与Settings页面保持一致）
+const SettingRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1rem 0;
   border-bottom: 1px solid var(--border-color);
   
   &:last-child {
     border-bottom: none;
-    margin-bottom: 0;
     padding-bottom: 0;
   }
-`;
-
-// 设置行
-const SettingRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
   
-  &:last-child {
-    margin-bottom: 0;
+  &:first-child {
+    padding-top: 0;
+  }
+  
+  /* 左侧标签区域 */
+  .label-section {
+    flex: 1;
+    margin-right: 1rem;
+  }
+  
+  /* 控件区域 */
+  .control-section {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
   }
 `;
 
-// 标签 - 改为 label 元素
+// 统一标签样式
 const Label = styled.label`
-  font-weight: 500;
+  display: block;
   color: var(--text-color);
-  display: block; // Ensure it takes full width if needed or adjust layout
+  font-weight: 500;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  margin-bottom: 0.25rem;
+  text-align: left; /* 确保标签左对齐 */
 `;
 
-// 描述
+// 统一描述样式
 const Description = styled.div`
-  font-size: 0.85rem;
   color: var(--text-secondary);
-  margin-top: 0.25rem;
-`;
-
-// 颜色选择器容器
-const ColorPickerContainer = styled.div`
-  display: flex;
-  gap: 0.5rem;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  margin: 0;
+  text-align: left; /* 确保描述左对齐 */
 `;
 
 // 颜色选择器
 const ColorPicker = styled.input`
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   padding: 0;
   border: 2px solid var(--border-color);
-  border-radius: var(--border-radius, 4px);
+  border-radius: 8px;
   cursor: pointer;
   background-color: transparent;
   
@@ -82,7 +84,13 @@ const ColorPicker = styled.input`
   
   &::-webkit-color-swatch {
     border: none;
-    border-radius: 2px;
+    border-radius: 6px;
+  }
+  
+  &:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(79, 209, 197, 0.2);
   }
 `;
 
@@ -91,28 +99,44 @@ const SliderContainer = styled.div`
   display: flex;
   flex-direction: column;
   width: 200px;
+  
+  input[type="range"] {
+    width: 100%;
+    margin-bottom: 0.5rem;
+    
+    &:focus {
+      outline: none;
+    }
+  }
 `;
 
-// 滑块值
+// 滑块值显示
 const SliderValue = styled.div`
   font-size: 0.85rem;
   color: var(--text-secondary);
   text-align: right;
-  margin-top: 0.25rem;
 `;
 
-// 按钮
+// 按钮样式
 const Button = styled.button`
   background-color: var(--primary-color);
   color: white;
   border: none;
-  padding: 0.5rem 1rem;
-  border-radius: var(--border-radius, 4px);
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
+  font-size: 0.9rem;
+  font-weight: 500;
   
   &:hover {
     opacity: 0.9;
+    transform: translateY(-1px);
+  }
+  
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(79, 209, 197, 0.2);
   }
 `;
 
@@ -120,19 +144,19 @@ const Button = styled.button`
  * 主题设置组件
  */
 const ThemeSettings = () => {
-  const { theme, updateThemeVariable } = useTheme();
+  const { updateThemeVariable } = useTheme();
   const [showAdvanced, setShowAdvanced] = useState(false);
-  
+
   // 主题颜色
   const [primaryColor, setPrimaryColor] = useState(
     () => getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim() || '#4FD1C5'
   );
-  
+
   // 辅助颜色
   const [secondaryColor, setSecondaryColor] = useState(
     () => getComputedStyle(document.documentElement).getPropertyValue('--secondary-color').trim() || '#805AD5'
   );
-  
+
   // 圆角大小
   const [borderRadius, setBorderRadius] = useState(
     () => {
@@ -140,116 +164,117 @@ const ThemeSettings = () => {
       return parseInt(value) || 8;
     }
   );
-  
+
   // 更新主题色
   const handlePrimaryColorChange = (e) => {
     const value = e.target.value;
     setPrimaryColor(value);
     updateThemeVariable('--primary-color', value);
   };
-  
+
   // 更新辅助色
   const handleSecondaryColorChange = (e) => {
     const value = e.target.value;
     setSecondaryColor(value);
     updateThemeVariable('--secondary-color', value);
   };
-  
+
   // 更新圆角大小
   const handleBorderRadiusChange = (e) => {
     const value = e.target.value;
     setBorderRadius(value);
     updateThemeVariable('--border-radius', `${value}px`);
   };
-  
+
   const advancedSettingsId = "advanced-settings-panel";
 
   return (
-    <SettingsContainer>
-      <Title>
-        <span aria-hidden="true">🎨</span>
-        主题设置
-      </Title>
-      
+    <SettingsContent>
       <Section>
         <SettingRow>
-          <div>
-            <Label htmlFor="primary-color-picker">主题色</Label>
+          <div className="label-section">
+            <Label htmlFor="primary-color-picker">主色调</Label>
             <Description id="primary-color-desc">应用的主要颜色</Description>
           </div>
-          <ColorPickerContainer>
+          <div className="control-section">
             <ColorPicker
               type="color"
               id="primary-color-picker"
               value={primaryColor}
               onChange={handlePrimaryColorChange}
               aria-describedby="primary-color-desc"
+              aria-label="选择主色调"
             />
-          </ColorPickerContainer>
+          </div>
         </SettingRow>
-        
+
         <SettingRow>
-          <div>
+          <div className="label-section">
             <Label htmlFor="secondary-color-picker">辅助色</Label>
             <Description id="secondary-color-desc">用于强调和高亮的颜色</Description>
           </div>
-          <ColorPickerContainer>
+          <div className="control-section">
             <ColorPicker
               type="color"
               id="secondary-color-picker"
               value={secondaryColor}
               onChange={handleSecondaryColorChange}
               aria-describedby="secondary-color-desc"
+              aria-label="选择辅助色"
             />
-          </ColorPickerContainer>
+          </div>
         </SettingRow>
-        
+
         <SettingRow>
-          <div>
+          <div className="label-section">
             <Label htmlFor="border-radius-slider">圆角大小</Label>
             <Description id="border-radius-desc">按钮和卡片的圆角半径</Description>
           </div>
-          <SliderContainer>
-            <input
-              type="range"
-              id="border-radius-slider"
-              min="0"
-              max="20"
-              value={borderRadius}
-              onChange={handleBorderRadiusChange}
-              aria-describedby="border-radius-desc"
-            />
-            <SliderValue>{borderRadius}px</SliderValue>
-          </SliderContainer>
+          <div className="control-section">
+            <SliderContainer>
+              <input
+                type="range"
+                id="border-radius-slider"
+                min="0"
+                max="20"
+                value={borderRadius}
+                onChange={handleBorderRadiusChange}
+                aria-describedby="border-radius-desc"
+                aria-label="调整圆角大小"
+              />
+              <SliderValue aria-live="polite">{borderRadius}px</SliderValue>
+            </SliderContainer>
+          </div>
         </SettingRow>
       </Section>
-      
+
       <Section>
         <SettingRow>
-          <div>
+          <div className="label-section">
             <Label id="advanced-settings-label">高级设置</Label>
             <Description id="advanced-settings-desc">更多自定义样式选项</Description>
           </div>
-          <Button 
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            aria-controls={advancedSettingsId}
-            aria-expanded={showAdvanced}
-            aria-labelledby="advanced-settings-label"
-            aria-describedby="advanced-settings-desc"
-          >
-            {showAdvanced ? '隐藏' : '显示'}
-          </Button>
+          <div className="control-section">
+            <Button
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              aria-controls={advancedSettingsId}
+              aria-expanded={showAdvanced}
+              aria-labelledby="advanced-settings-label"
+              aria-describedby="advanced-settings-desc"
+            >
+              {showAdvanced ? '隐藏' : '显示'}
+            </Button>
+          </div>
         </SettingRow>
-        
+
         {showAdvanced && (
           <div id={advancedSettingsId} style={{ marginTop: '1rem' }}>
             <StyleEditor />
           </div>
         )}
       </Section>
-    </SettingsContainer>
+    </SettingsContent>
   );
 };
 
 export default ThemeSettings;
- 

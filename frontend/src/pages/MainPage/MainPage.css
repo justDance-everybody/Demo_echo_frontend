@@ -1,9 +1,12 @@
 .main-page-container {
   display: flex;
   flex-direction: column;
-  height: 100vh; /* Full viewport height */
-  background-color: #1E1E2F; /* Dark background */
-  color: #F8F8F8; /* Light text */
+  height: 100vh;
+  /* Full viewport height */
+  background-color: #1E1E2F;
+  /* Dark background */
+  color: #F8F8F8;
+  /* Light text */
   padding: 0;
   margin: 0;
   box-sizing: border-box;
@@ -22,10 +25,13 @@
 .sidebar {
   width: 280px;
   background-color: #2A2A40;
-  height: 100%;
-  position: absolute;
+  height: calc(100% - 96px);
+  /* 减去状态栏40px + 导航栏56px = 96px */
+  position: fixed;
+  /* 改为fixed以避免滚动问题 */
   left: 0;
-  top: 0;
+  top: 80px;
+  /* 状态栏40px + 导航栏56px = 96px */
   z-index: 100;
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
   padding: 20px;
@@ -97,8 +103,9 @@
 
 /* 侧边栏切换按钮 */
 .sidebar-toggle-btn {
-  position: absolute;
-  top: 15px;
+  position: fixed;
+  top: 110px;
+  /* 状态栏40px + 导航栏56px + 间距14px = 110px */
   left: 15px;
   z-index: 200;
   width: 40px;
@@ -179,7 +186,7 @@
   font-size: 16px;
   line-height: 1.6;
   color: #FFFFFF;
-  text-shadow: 0 0 1px rgba(0,0,0,0.3);
+  text-shadow: 0 0 1px rgba(0, 0, 0, 0.3);
   letter-spacing: 0.02em;
   font-weight: 400;
 }
@@ -233,10 +240,12 @@
     transform: scale(0.95);
     box-shadow: 0 0 0 0 rgba(255, 82, 82, 0.7);
   }
+
   70% {
     transform: scale(1);
     box-shadow: 0 0 0 15px rgba(255, 82, 82, 0);
   }
+
   100% {
     transform: scale(0.95);
     box-shadow: 0 0 0 0 rgba(255, 82, 82, 0);
@@ -264,15 +273,16 @@
     width: 80%;
     max-width: 300px;
   }
-  
-  .user-message, .system-message {
+
+  .user-message,
+  .system-message {
     max-width: 90%;
   }
-  
+
   .voice-recorder-container {
     bottom: 15px;
   }
-  
+
   .content-area {
     padding: 60px 15px 90px 15px;
   }
@@ -318,4 +328,4 @@
 
 .status-error {
   background-color: #FF5252;
-} 
+}

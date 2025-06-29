@@ -10,10 +10,10 @@ export const AuthContext = createContext({
   loading: false,
   error: null,
   role: null,
-  login: () => {},
-  register: () => {},
-  logout: () => {},
-  clearError: () => {}
+  login: () => { },
+  register: () => { },
+  logout: () => { },
+  clearError: () => { }
 });
 
 // 认证提供者组件
@@ -57,22 +57,28 @@ export const AuthProvider = ({ children }) => {
   const login = async (username, password) => {
     setLoading(true);
     setError(null);
-    
+
     try {
+      console.log('开始登录请求...');
       const response = await apiClient.login(username, password);
-      
+      console.log('登录响应:', response);
+
       if (response.success) {
+        console.log('登录成功，设置认证状态...');
         setAuth(response.user, response.token, response.user?.role);
         toast.success('登录成功');
+        console.log('认证状态已设置，isAuthenticated应该为true');
         return true;
       } else {
+        console.log('登录失败:', response.message);
         setError(response.message || '登录失败');
         setLoading(false);
         toast.error(response.message || '登录失败');
         return false;
       }
     } catch (err) {
-      const errorMessage = err.response?.data?.message || '登录失败，请稍后再试';
+      console.error('登录异常:', err);
+      const errorMessage = err.response?.data?.message || err.message || '登录失败，请稍后再试';
       setError(errorMessage);
       setLoading(false);
       toast.error(errorMessage);
@@ -84,10 +90,10 @@ export const AuthProvider = ({ children }) => {
   const register = async (username, password, email) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await apiClient.register(username, password, email);
-      
+
       if (response.success) {
         setAuth(response.user, response.token, response.user?.role);
         toast.success('注册成功');
@@ -116,14 +122,14 @@ export const AuthProvider = ({ children }) => {
   // 检查并刷新token
   const checkAuth = useCallback(async () => {
     if (!token) return;
-    
+
     try {
       // 设置API客户端的token
       apiClient.setAuthToken(token);
-      
+
       // 获取用户信息
       const userData = await apiClient.getUserInfo();
-      
+
       if (userData.success) {
         setUser(userData.user);
         setRole(userData.user?.role || 'user');

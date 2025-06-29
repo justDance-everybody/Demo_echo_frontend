@@ -1,62 +1,191 @@
 .voice-recorder-container {
-  position: fixed; 
-  bottom: 0;
-  left: 0;
-  right: 0;
+  width: 100%;
+  padding: 1rem;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 15px 0; 
-  background-color: #1E1E2F; 
-  border-top: 1px solid #333; 
-  z-index: 100; 
+}
+
+.voice-recorder-content {
+  position: relative;
+  max-width: 24rem;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .recorder-button {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%; 
-  background-color: #4FD1C5; 
-  border: none;
-  color: #1E1E2F; 
-  font-size: 14px;
-  font-weight: bold;
-  cursor: pointer;
+  group: true;
+  width: 4rem;
+  height: 4rem;
+  border-radius: 0.75rem;
   display: flex;
-  justify-content: center;
   align-items: center;
-  text-align: center;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  justify-content: center;
+  transition: all 0.3s ease;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-color, rgba(0, 0, 0, 0.7));
 }
 
-.recorder-button:hover {
-  background-color: #3dbbab; 
-}
-
-.recorder-button:active {
-    transform: scale(0.95); 
-}
-
-.recorder-button.listening {
-  background-color: #F56565; 
-  color: white;
-  animation: pulse 1.5s infinite ease-in-out;
+.recorder-button:hover:not(:disabled) {
+  background-color: var(--hover-bg, rgba(0, 0, 0, 0.1));
 }
 
 .recorder-button:disabled {
-    background-color: #4A5568; 
-    cursor: not-allowed;
-    opacity: 0.6; /* Add opacity for disabled state */
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
-@keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(245, 101, 101, 0.7); }
-  70% { box-shadow: 0 0 0 10px rgba(245, 101, 101, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(245, 101, 101, 0); }
+.recorder-button.listening {
+  background: none;
 }
 
-.voice-recorder-container p {
-    color: #A0AEC0; 
-    margin-left: 15px;
-} 
+.mic-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  stroke-width: 2;
+}
+
+.recording-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.125rem;
+  background-color: var(--text-color, rgba(0, 0, 0, 0.8));
+  animation: spin 3s linear infinite;
+  cursor: pointer;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.time-display {
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  transition: opacity 0.3s ease;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.3));
+}
+
+.time-display.active {
+  color: var(--text-color, rgba(0, 0, 0, 0.7));
+}
+
+.visualizer-container {
+  height: 1rem;
+  width: 16rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+}
+
+.visualizer-bar {
+  width: 0.125rem;
+  border-radius: 9999px;
+  transition: all 0.3s ease;
+  background-color: var(--visualizer-inactive, rgba(0, 0, 0, 0.1));
+  height: 0.25rem;
+}
+
+.visualizer-bar.active {
+  background-color: var(--visualizer-active, rgba(0, 0, 0, 0.5));
+  animation: pulse-bar 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-bar {
+
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+.status-text {
+  height: 1rem;
+  font-size: 0.75rem;
+  color: var(--text-color, rgba(0, 0, 0, 0.7));
+  margin: 0;
+}
+
+.error-message {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  background-color: var(--error-bg, rgba(239, 68, 68, 0.1));
+  border-radius: 0.5rem;
+  margin-top: 1rem;
+}
+
+.error-message p {
+  color: var(--error-text, rgba(239, 68, 68, 0.8));
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+/* Dark mode support */
+[data-theme="dark"] .recorder-button {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+[data-theme="dark"] .recorder-button:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .recording-icon {
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+[data-theme="dark"] .time-display {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+[data-theme="dark"] .time-display.active {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+[data-theme="dark"] .visualizer-bar {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .visualizer-bar.active {
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="dark"] .status-text {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+[data-theme="dark"] .error-message {
+  background-color: rgba(239, 68, 68, 0.2);
+}
+
+[data-theme="dark"] .error-message p {
+  color: rgba(248, 113, 113, 0.9);
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+  .voice-recorder-content {
+    max-width: 20rem;
+  }
+
+  .visualizer-container {
+    width: 12rem;
+  }
+}

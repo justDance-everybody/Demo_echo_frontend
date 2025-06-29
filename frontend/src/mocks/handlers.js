@@ -52,7 +52,7 @@ const mockSystemTools = [
       method: 'POST',
       platform_type: 'generic_http',
     },
-    request_schema: { type: 'object', properties: { text: { type: 'string' }, target_lang: { type: 'string'} }, required: ['text', 'target_lang'] },
+    request_schema: { type: 'object', properties: { text: { type: 'string' }, target_lang: { type: 'string' } }, required: ['text', 'target_lang'] },
     response_schema: { /* schema */ },
     tags: ['developer', 'http', 'translation', 'ai'],
     created_at: '2024-05-01T15:30:00Z',
@@ -100,11 +100,11 @@ let developerToolsDb = [
       }
     },
     documentation: 'This is a Dify app for testing. Input: query (string). Output: text response.',
-    request_schema: { },
-    response_schema: { },
+    request_schema: {},
+    response_schema: {},
     tags: ['developer', 'http', 'dify', 'custom'],
     created_at: '2024-05-15T10:00:00Z',
-    rating: 0, 
+    rating: 0,
   },
   {
     tool_id: 'dev_owned_coze_bot_456',
@@ -118,15 +118,15 @@ let developerToolsDb = [
       url: 'https://coze.example.com/api/v2/chat',
       method: 'POST',
       platform_type: 'coze',
-      authentication: { type: 'api_key', key_name: 'Authorization', api_key: 'Bearer coze-secret-key-dev1' }, 
+      authentication: { type: 'api_key', key_name: 'Authorization', api_key: 'Bearer coze-secret-key-dev1' },
       coze_config: {
         bot_id: 'coze-bot-xyz789',
-        user_query_variable: 'query' 
+        user_query_variable: 'query'
       }
     },
     documentation: 'This is a Coze bot. Input: query (string). Output: chat message.',
-    request_schema: { },
-    response_schema: { },
+    request_schema: {},
+    response_schema: {},
     tags: ['developer', 'http', 'coze', 'chatbot'],
     created_at: '2024-05-16T11:30:00Z',
     rating: 0,
@@ -140,13 +140,21 @@ export const handlers = [
     if (!username || !email || !password) {
       return res(ctx.status(400), ctx.json({ error: { code: 'INVALID_PARAM', msg: 'Missing fields' } }));
     }
-    // Simulate successful registration
+    // Check for existing user (for testing error cases)
+    if (email === 'existing@example.com') {
+      return res(ctx.status(400), ctx.json({ error: { code: 'VALIDATION_ERROR', msg: 'Email already exists' } }));
+    }
+    // Simulate successful registration with token
     return res(
       ctx.status(201),
       ctx.json({
-        id: Math.floor(Math.random() * 1000),
-        username,
-        email,
+        token: 'fake-jwt-register-token-string',
+        user: {
+          id: Math.floor(Math.random() * 1000),
+          username,
+          email,
+          role: 'user'
+        }
       })
     );
   }),
@@ -162,19 +170,30 @@ export const handlers = [
         })
       );
     } else if (username === 'devuser' && password === 'password') {
-        return res(
-            ctx.status(200),
-            ctx.json({
-                token: 'fake-jwt-developer-token-string',
-                user: { ...mockUser, id: 2, username: 'devuser', role: 'developer' }
-            })
-        );
+      return res(
+        ctx.status(200),
+        ctx.json({
+          token: 'fake-jwt-developer-token-string',
+          user: { ...mockUser, id: 2, username: 'devuser', role: 'developer' }
+        })
+      );
     } else {
       return res(
         ctx.status(401),
         ctx.json({ error: { code: 'AUTH_FAILED', msg: 'Invalid credentials' } })
       );
     }
+  }),
+
+  // MOCK GET ALL TOOLS
+  rest.get('/v1/api/tools', (req, res, ctx) => {
+    console.log('MSW intercepted GET /v1/api/tools');
+    return res(
+      ctx.status(200),
+      ctx.json({
+        tools: mockSystemTools,
+      })
+    );
   }),
 
   // Core API
@@ -206,12 +225,12 @@ export const handlers = [
       params = { prompt: 'A cat wearing a hat' };
       confirmText = `Should I generate an image of a cat wearing a hat?`;
     } else {
-       // Try to match against developer tools if no system tool matches
+      // Try to match against developer tools if no system tool matches
       const devToolMatch = developerToolsDb.find(tool => lowerText.includes(tool.name.toLowerCase().split(' ')[0]));
       if (devToolMatch) {
         action = devToolMatch.tool_id;
         // For simplicity, let's assume all dev tools take a generic 'input' param for now
-        params = { input: query }; 
+        params = { input: query };
         confirmText = `Do you want to use the '${devToolMatch.name}' service for your query: "${query}"?`;
       }
     }
@@ -240,7 +259,7 @@ export const handlers = [
     }
 
     if (tool.isDeveloperTool && tool.status === 'disabled') {
-      return res(ctx.status(403), ctx.json({ error: { code: 'TOOL_DISABLED', msg: `Tool ${tool_id} is currently disabled by the developer.`}}));
+      return res(ctx.status(403), ctx.json({ error: { code: 'TOOL_DISABLED', msg: `Tool ${tool_id} is currently disabled by the developer.` } }));
     }
 
     let responseData = {};
@@ -264,7 +283,7 @@ export const handlers = [
 
   rest.get('/v1/api/tools', (req, res, ctx) => {
     const allTools = [
-      ...mockSystemTools.filter(t => !t.isDeveloperTool), 
+      ...mockSystemTools.filter(t => !t.isDeveloperTool),
       ...developerToolsDb.filter(t => t.status === 'enabled') // Only show enabled developer tools
     ];
     return res(ctx.status(200), ctx.json({ tools: allTools }));
@@ -279,7 +298,7 @@ export const handlers = [
   rest.post('/api/dev/tools', async (req, res, ctx) => {
     const serviceData = await req.json();
     const newTool = {
-      tool_id: `dev_tool_${uuidv4().slice(0,8)}`,
+      tool_id: `dev_tool_${uuidv4().slice(0, 8)}`,
       provider: 'devuser', // Assuming current authenticated user is the provider
       isDeveloperTool: true,
       status: 'enabled', // Default to enabled
@@ -360,7 +379,7 @@ export const handlers = [
           success: true,
           raw_response: {
             coze_message: `Mock Coze bot ${cozeBotId} response for '${testInput}'. Simulation successful.`,
-            messages: [{ type: 'answer', content: `Mocked Coze: ${testInput}`}],
+            messages: [{ type: 'answer', content: `Mocked Coze: ${testInput}` }],
             conversation_id: `test_coze_conv_${uuidv4()}`,
           }
         };

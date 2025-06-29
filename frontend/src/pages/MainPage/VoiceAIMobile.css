@@ -10,6 +10,8 @@
   background-color: var(--background);
   color: var(--text);
   transition: background-color var(--transition-normal), color var(--transition-normal);
+  position: relative;
+  /* 为绝对定位的子元素提供参考 */
 }
 
 .voice-ai-navbar {
@@ -177,9 +179,38 @@
 }
 
 .classic-mode-button {
-  position: absolute; 
-  top: var(--spacing-3); 
+  position: absolute;
+  top: var(--spacing-3);
   right: var(--spacing-3);
+  z-index: 10;
+  /* 确保在其他元素之上 */
+}
+
+/* 主题切换按钮样式 - 放置在页面左上角 */
+.theme-toggle-wrapper {
+  position: absolute;
+  top: var(--spacing-3);
+  left: var(--spacing-3);
+  z-index: 10;
+  /* 确保在其他元素之上 */
+  background-color: var(--surface);
+  padding: var(--spacing-2);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+
+  /* 确保在移动端不会被压缩 */
+  min-width: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* 悬停效果 */
+  transition: all var(--transition-fast);
+}
+
+.theme-toggle-wrapper:hover {
+  box-shadow: var(--shadow-md);
 }
 
 /* 为移动端优化 */
@@ -187,9 +218,22 @@
   .content-area {
     padding: var(--spacing-2);
   }
-  
+
   .control-area {
     padding: var(--spacing-3);
+  }
+
+  /* 移动端主题切换按钮优化 */
+  .theme-toggle-wrapper {
+    min-width: 100px;
+    padding: var(--spacing-1) var(--spacing-2);
+    top: var(--spacing-2);
+    left: var(--spacing-2);
+  }
+
+  .classic-mode-button {
+    top: var(--spacing-2);
+    right: var(--spacing-2);
   }
 }
 
@@ -198,9 +242,11 @@
   0% {
     transform: scale(1);
   }
+
   50% {
     transform: scale(1.05);
   }
+
   100% {
     transform: scale(1);
   }
@@ -211,4 +257,4 @@
 .status.processing,
 .status.executing {
   animation: pulse 1s infinite;
-} 
+}
