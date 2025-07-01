@@ -23,7 +23,7 @@
 
 /* 侧边栏样式 */
 .sidebar {
-  width: 280px;
+  width: 320px;
   background-color: #2A2A40;
   height: calc(100% - 96px);
   /* 减去状态栏40px + 导航栏56px = 96px */
@@ -34,8 +34,8 @@
   /* 状态栏40px + 导航栏56px = 96px */
   z-index: 100;
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
-  padding: 20px;
-  overflow-y: auto;
+  padding: 0;
+  overflow: hidden;
 }
 
 .sidebar h2 {
@@ -139,6 +139,12 @@
   padding: 60px 20px 100px 20px;
   overflow-y: auto;
   position: relative;
+}
+
+/* 主页进度条样式 */
+.main-page-progress {
+  margin: 16px auto 20px;
+  max-width: 500px;
 }
 
 /* 消息容器 */

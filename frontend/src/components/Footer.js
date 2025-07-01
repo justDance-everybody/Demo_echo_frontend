@@ -106,19 +106,17 @@ const Footer = () => {
         <FooterColumn>
           <h2>关于我们</h2>
           <ul>
-            <li><Link to="/about">平台介绍</Link></li>
-            <li><Link to="/team">团队成员</Link></li>
-            <li><Link to="/contact">联系我们</Link></li>
-            <li><Link to="/careers">招聘信息</Link></li>
+            <li><Link to="/about">公司介绍</Link></li>
+            <li><Link to="/team">团队介绍</Link></li>
+            <li><Link to="/careers">加入我们</Link></li>
           </ul>
         </FooterColumn>
 
         <FooterColumn>
           <h2>资源</h2>
           <ul>
-            <li><Link to="/docs">开发文档</Link></li>
-            <li><Link to="/api">API参考</Link></li>
-            <li><Link to="/examples">示例代码</Link></li>
+            <li><Link to="/docs">使用文档</Link></li>
+            <li><Link to="/api">API文档</Link></li>
             <li><Link to="/blog">技术博客</Link></li>
           </ul>
         </FooterColumn>
@@ -128,16 +126,15 @@ const Footer = () => {
           <ul>
             <li><Link to="/help">帮助中心</Link></li>
             <li><Link to="/faq">常见问题</Link></li>
-            <li><Link to="/feedback">反馈建议</Link></li>
-            <li><Link to="/status">系统状态</Link></li>
+            <li><Link to="/feedback">意见反馈</Link></li>
           </ul>
         </FooterColumn>
 
         <FooterColumn>
           <h2>联系信息</h2>
-          <p>邮箱: support@echo-ai.com</p>
-          <p>电话: 400-800-8888</p>
-          <p>地址: 北京市海淀区科技园</p>
+          <p>邮箱：support@echo.ai</p>
+          <p>电话：400-123-4567</p>
+          <p>地址：北京市海淀区</p>
         </FooterColumn>
       </FooterContent>
 

@@ -48,7 +48,7 @@ const SettingsCardContainer = styled.div`
 const SettingsCard = styled.div`
   background-color: var(--surface);
   padding: 1.5rem;
-  border-radius: 12px; /* 统一使用圆角矩形 */
+  border-radius: var(--border-radius, 12px); /* 使用动态圆角 */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border: 1px solid var(--border-color);
   transition: all 0.2s ease;
@@ -183,7 +183,7 @@ const SettingRow = styled.div`
   select {
     padding: 0.5rem 0.75rem;
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--border-radius, 8px);
     background-color: var(--surface);
     color: var(--text-color);
     font-size: 0.9rem;

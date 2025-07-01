@@ -61,14 +61,14 @@ const ToastItem = styled.div`
   animation: ${props => props.exiting ? slideOut : slideIn} 0.3s ease-in-out;
   border-left: 4px solid ${props => {
     switch (props.type) {
-      case ToastTypes.SUCCESS: 
+      case ToastTypes.SUCCESS:
         return 'var(--color-success)';
-      case ToastTypes.ERROR: 
+      case ToastTypes.ERROR:
         return 'var(--color-error)';
-      case ToastTypes.WARNING: 
+      case ToastTypes.WARNING:
         return 'var(--color-warning)';
       case ToastTypes.INFO:
-      default: 
+      default:
         return 'var(--color-info)';
     }
   }};
@@ -83,14 +83,14 @@ const IconContainer = styled.div`
   flex-shrink: 0;
   color: ${props => {
     switch (props.type) {
-      case ToastTypes.SUCCESS: 
+      case ToastTypes.SUCCESS:
         return 'var(--color-success)';
-      case ToastTypes.ERROR: 
+      case ToastTypes.ERROR:
         return 'var(--color-error)';
-      case ToastTypes.WARNING: 
+      case ToastTypes.WARNING:
         return 'var(--color-warning)';
       case ToastTypes.INFO:
-      default: 
+      default:
         return 'var(--color-info)';
     }
   }};
@@ -156,9 +156,9 @@ export const Toast = ({ messages, removeMessage }) => {
   return createPortal(
     <ToastContainer data-testid="toast-container">
       {messages.map((message) => (
-        <ToastItem 
-          key={message.id} 
-          type={message.type} 
+        <ToastItem
+          key={message.id}
+          type={message.type}
           exiting={message.exiting}
           data-testid={`toast-item-${message.id}`}
         >
@@ -179,20 +179,20 @@ export const ToastService = () => {
 
   // 标记消息为退出状态
   const markAsExiting = useCallback((id) => {
-    setMessages(prevMessages => 
-      prevMessages.map(msg => 
+    setMessages(prevMessages =>
+      prevMessages.map(msg =>
         msg.id === id ? { ...msg, exiting: true } : msg
       )
     );
-    
+
     // 动画结束后移除消息
     setTimeout(() => {
-      setMessages(prevMessages => 
+      setMessages(prevMessages =>
         prevMessages.filter(msg => msg.id !== id)
       );
     }, 300); // 与动画持续时间匹配
   }, []);
-  
+
   // 移除消息
   const removeMessage = useCallback((id) => {
     markAsExiting(id);
@@ -201,17 +201,17 @@ export const ToastService = () => {
   // 添加消息
   const addMessage = useCallback((content, type = ToastTypes.INFO, duration = 3000) => {
     const id = Date.now().toString();
-    
+
     setMessages(prevMessages => [
       ...prevMessages,
       { id, content, type, exiting: false }
     ]);
-    
+
     // 自动移除
     if (duration > 0) {
       setTimeout(() => removeMessage(id), duration);
     }
-    
+
     return id;
   }, [removeMessage]);
 
@@ -225,7 +225,7 @@ export const ToastService = () => {
       warning: (content, duration) => addMessage(content, ToastTypes.WARNING, duration),
       remove: (id) => removeMessage(id),
     };
-    
+
     return () => {
       toastInstance = null;
     };
@@ -236,18 +236,21 @@ export const ToastService = () => {
 
 // 导出Toast API
 export const toast = {
-  show: (content, type, duration) => 
+  show: (content, type, duration) =>
     toastInstance?.show(content, type, duration),
-  success: (content, duration) => 
+  success: (content, duration) =>
     toastInstance?.success(content, duration),
-  error: (content, duration) => 
+  error: (content, duration) =>
     toastInstance?.error(content, duration),
-  info: (content, duration) => 
+  info: (content, duration) =>
     toastInstance?.info(content, duration),
-  warning: (content, duration) => 
+  warning: (content, duration) =>
     toastInstance?.warning(content, duration),
-  remove: (id) => 
+  remove: (id) =>
     toastInstance?.remove(id),
+  // 符合文档验收标准的API
+  showError: (message, duration) =>
+    toastInstance?.error(message, duration),
 };
 
 export default Toast; 

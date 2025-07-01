@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import VoiceRecorder from '../../components/VoiceRecorder/VoiceRecorder';
 import StatusBar from '../../components/StatusBar/StatusBar';
+import ToolsList from '../../components/ToolsList';
+import ProgressBar from '../../components/ProgressBar/ProgressBar';
 import apiClient from '../../services/apiClient';
 import useTTS from '../../hooks/useTTS';
 import useVoice from '../../hooks/useVoice';
@@ -29,7 +31,6 @@ const MainPage = () => {
 
     // 侧边栏状态
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [availableTools, setAvailableTools] = useState([]);
 
     // 添加自动重置计时器引用
     const resetTimerRef = useRef(null);
@@ -40,43 +41,6 @@ const MainPage = () => {
             sessionIdRef.current = `session-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
             console.log('Initialized Session ID:', sessionIdRef.current);
         }
-
-        // 尝试获取可用工具列表
-        const fetchTools = async () => {
-            try {
-                // 调用API获取工具列表
-                const tools = await apiClient.getTools();
-                if (tools && tools.length > 0) {
-                    // 将工具列表映射为前端所需格式
-                    const formattedTools = tools.map(tool => ({
-                        id: tool.tool_id,
-                        name: tool.name,
-                        description: tool.description || `${tool.name}工具`,
-                        type: tool.type,
-                        source: tool.source
-                    }));
-
-                    setAvailableTools(formattedTools);
-                    console.log('成功获取工具列表:', formattedTools);
-                } else {
-                    console.warn('工具列表为空');
-                    // 使用备用数据
-                    setAvailableTools([
-                        { id: 'maps_weather', name: '天气查询', description: '查询指定城市的天气情况' },
-                        { id: 'calendar', name: '日程管理', description: '查看和管理日程安排' }
-                    ]);
-                }
-            } catch (error) {
-                console.error('获取工具列表失败:', error);
-                // 使用备用数据
-                setAvailableTools([
-                    { id: 'maps_weather', name: '天气查询', description: '查询指定城市的天气情况' },
-                    { id: 'calendar', name: '日程管理', description: '查看和管理日程安排' }
-                ]);
-            }
-        };
-
-        fetchTools();
     }, []);
 
     // 添加重置函数
@@ -86,12 +50,118 @@ const MainPage = () => {
         setPendingAction(null);
         setIsConfirmModalOpen(false);
         setResultData(null);
+        setIsConfirming(false); // 重置确认状态锁
         errorCountRef.current = 0;
         resetVoice();
         // 保留最后一次的文本记录，但可以选择清除
         // setLastTranscript('');
         // setLastResponse(null);
     }, [resetVoice]);
+
+    // 进度条阶段管理函数
+    const runProgressStages = useCallback(async (transcript, currentSessionId) => {
+        console.log(`[ProgressBar] 开始四阶段进度流程`);
+
+        // 阶段1: 识别中 (listening) - 已经完成，显示1秒
+        setStatus('listening');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // 阶段2: 理解中 (thinking)
+        console.log(`[ProgressBar] 进入理解阶段`);
+        setStatus('thinking');
+
+        try {
+            const result = await apiClient.interpret(transcript, currentSessionId, 1);
+            console.log(`[Session: ${currentSessionId}] Interpret API Result:`, result);
+
+            // 检查并保存返回的sessionId
+            if (result.sessionId && result.sessionId !== currentSessionId) {
+                console.log(`更新sessionId: ${currentSessionId} -> ${result.sessionId}`);
+                sessionIdRef.current = result.sessionId;
+            }
+
+            // 阶段3: 执行中 (executing)
+            console.log(`[ProgressBar] 进入执行阶段`);
+            setStatus('executing');
+
+            // 模拟执行时间，让用户看到执行阶段
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // 处理API结果
+            if (result.tool_calls && result.tool_calls.length > 0) {
+                console.log(`[Session: ${result.sessionId || currentSessionId}] Tool call required. Pending action set.`);
+                setPendingAction(result);
+                const textToConfirm = result.confirm_text || result.confirmText || '您确定要执行此操作吗？';
+                setConfirmText(textToConfirm);
+
+                // 阶段4: 完成 (completed) - 短暂显示
+                setStatus('completed');
+                await new Promise(resolve => setTimeout(resolve, 800));
+
+                // 然后显示确认对话框
+                setIsConfirmModalOpen(true);
+                setStatus('idle'); // 等待用户确认
+
+                // 注意：TTS播报由ConfirmationModal组件负责，这里不再重复调用
+
+            } else if (result.action === 'respond' && result.content) {
+                console.log(`[Session: ${result.sessionId || currentSessionId}] Direct response received.`);
+
+                // 阶段4: 完成 (completed)
+                setStatus('completed');
+                await new Promise(resolve => setTimeout(resolve, 800));
+
+                setLastResponse({ status: 'info', message: result.content });
+                setStatus('speaking');
+                speak(result.content, resetUIState);
+
+            } else {
+                const textToConfirm = result.confirm_text || result.confirmText;
+                if (textToConfirm) {
+                    console.log(`[Session: ${result.sessionId || currentSessionId}] Confirmation text only received.`);
+                    setPendingAction(result);
+                    setConfirmText(textToConfirm);
+
+                    // 阶段4: 完成 (completed)
+                    setStatus('completed');
+                    await new Promise(resolve => setTimeout(resolve, 800));
+
+                    setIsConfirmModalOpen(true);
+                    setStatus('idle');
+
+                    // 注意：TTS播报由ConfirmationModal组件负责，这里不再重复调用
+                } else {
+                    console.log(`[Session: ${result.sessionId || currentSessionId}] Response format detection:`, result);
+
+                    // 阶段4: 完成 (completed)
+                    setStatus('completed');
+                    await new Promise(resolve => setTimeout(resolve, 800));
+
+                    const message = JSON.stringify(result);
+                    setLastResponse({ status: 'info', message: `收到未知格式的响应: ${message}` });
+                    setStatus('speaking');
+                    speak("收到未知格式的响应，请检查控制台", resetUIState);
+                }
+            }
+        } catch (error) {
+            console.error(`[Session: ${currentSessionId}] Interpret API call failed:`, error);
+
+            // 即使出错也要显示完成阶段
+            setStatus('completed');
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            const message = `抱歉，理解您的指令时出错：${error.message || '网络请求失败'}`;
+            setLastResponse({ status: 'error', message });
+            setStatus('error');
+            speak(message, resetUIState);
+
+            // 增加错误计数
+            errorCountRef.current += 1;
+
+            // 错误后5秒自动重置
+            resetTimerRef.current = setTimeout(resetUIState, 5000);
+        }
+    }, [speak, resetUIState, startListening, isListening, stopListening]);
 
     const handleVoiceResult = useCallback(async (transcript) => {
         // 清除任何现有的重置计时器
@@ -110,81 +180,14 @@ const MainPage = () => {
 
         console.log(`[Session: ${currentSessionId}] Received transcript:`, transcript);
         setLastTranscript(transcript);
-        setStatus('thinking');
         setLastResponse(null);
         setResultData(null);
         setPendingAction(null);
         setIsConfirmModalOpen(false);
 
-        try {
-            const result = await apiClient.interpret(transcript, currentSessionId, 1);
-            console.log(`[Session: ${currentSessionId}] Interpret API Result:`, result);
-
-            // 检查并保存返回的sessionId
-            if (result.sessionId && result.sessionId !== currentSessionId) {
-                console.log(`更新sessionId: ${currentSessionId} -> ${result.sessionId}`);
-                sessionIdRef.current = result.sessionId;
-            }
-
-            if (result.tool_calls && result.tool_calls.length > 0) {
-                console.log(`[Session: ${result.sessionId || currentSessionId}] Tool call required. Pending action set.`);
-                setPendingAction(result);
-                const textToConfirm = result.confirm_text || result.confirmText || '您确定要执行此操作吗？';
-                setConfirmText(textToConfirm);
-                setIsConfirmModalOpen(true);
-
-                // 调用 speak 并传入 onEnd 回调
-                speak(textToConfirm, () => {
-                    // TTS 播放结束后，启动 STT 监听用户确认
-                    console.log("MainPage: 确认信息播报完毕，准备开始监听用户回复...");
-                    console.log("[MainPage] speak onEnd callback triggered. Current status before set:", status);
-                    setStatus('listening_confirm');
-
-                    // 不再在这里直接启动语音识别，而是通过传给ConfirmationModal的props来控制
-                    console.log("[MainPage] 设置状态为listening_confirm，等待ConfirmationModal组件中的语音识别启动");
-                });
-            } else if (result.action === 'respond' && result.content) {
-                console.log(`[Session: ${result.sessionId || currentSessionId}] Direct response received.`);
-                setLastResponse({ status: 'info', message: result.content });
-                setStatus('speaking');
-                speak(result.content, resetUIState);
-            } else {
-                const textToConfirm = result.confirm_text || result.confirmText;
-                if (textToConfirm) {
-                    console.log(`[Session: ${result.sessionId || currentSessionId}] Confirmation text only received.`);
-                    setPendingAction(result);
-                    setConfirmText(textToConfirm);
-                    setIsConfirmModalOpen(true);
-                    speak(textToConfirm, () => {
-                        console.log("MainPage: 确认信息(无工具调用)播报完毕，准备开始监听用户回复...");
-                        console.log("[MainPage] speak onEnd callback triggered (no tool call). Current status before set:", status);
-                        setStatus('listening_confirm');
-
-                        // 不再在这里直接启动语音识别，而是通过传给ConfirmationModal的props来控制
-                        console.log("[MainPage] 设置状态为listening_confirm，等待ConfirmationModal组件中的语音识别启动");
-                    });
-                } else {
-                    console.log(`[Session: ${result.sessionId || currentSessionId}] Response format detection:`, result);
-                    const message = JSON.stringify(result);
-                    setLastResponse({ status: 'info', message: `收到未知格式的响应: ${message}` });
-                    setStatus('speaking');
-                    speak("收到未知格式的响应，请检查控制台", resetUIState);
-                }
-            }
-        } catch (error) {
-            console.error(`[Session: ${currentSessionId}] Interpret API call failed:`, error);
-            const message = `抱歉，理解您的指令时出错：${error.message || '网络请求失败'}`;
-            setLastResponse({ status: 'error', message });
-            setStatus('error');
-            speak(message, resetUIState);
-
-            // 增加错误计数
-            errorCountRef.current += 1;
-
-            // 错误后5秒自动重置
-            resetTimerRef.current = setTimeout(resetUIState, 5000);
-        }
-    }, [speak, resetUIState, startListening, isListening, stopListening]);
+        // 运行四阶段进度流程
+        await runProgressStages(transcript, currentSessionId);
+    }, [runProgressStages]);
 
     // 提取工具执行和结果处理逻辑到单独的函数
     const executeToolAndHandleResult = useCallback(async (toolId, params, currentSessionId, userId) => {
@@ -235,13 +238,19 @@ const MainPage = () => {
                 console.log(`[Session: ${execResult.sessionId || currentSessionId}] 即将播报结果: "${textToSpeak}"`);
 
                 // 使用增强的流式语音播报，确保状态正确更新
-                speak(textToSpeak, resetUIState);
+                speak(textToSpeak, () => {
+                    setIsConfirming(false); // 重置确认状态锁
+                    resetUIState();
+                });
             } else {
                 console.error(`[Session: ${execResult.sessionId || currentSessionId}] Tool execution failed:`, execResult.error);
                 const message = `抱歉，执行操作时失败：${execResult.error?.message || '未知错误'}`;
                 setResultData({ status: 'error', message });
                 setStatus('error');
-                speak(message, resetUIState);
+                speak(message, () => {
+                    setIsConfirming(false); // 重置确认状态锁
+                    resetUIState();
+                });
 
                 // 错误后5秒自动重置
                 resetTimerRef.current = setTimeout(resetUIState, 5000);
@@ -251,15 +260,27 @@ const MainPage = () => {
             const message = `抱歉，执行操作时出错：${error.message || '网络请求失败'}`;
             setResultData({ status: 'error', message });
             setStatus('error');
-            speak(message, resetUIState);
+            speak(message, () => {
+                setIsConfirming(false); // 重置确认状态锁
+                resetUIState();
+            });
 
             // 错误后5秒自动重置
             resetTimerRef.current = setTimeout(resetUIState, 5000);
         }
     }, [speak, resetUIState]);
 
+    const [isConfirming, setIsConfirming] = useState(false); // 添加确认状态锁
+
     const handleUserConfirm = useCallback(() => {
+        // 防止重复调用
+        if (isConfirming) {
+            console.log(`[Session: ${sessionIdRef.current}] 操作正在确认中，忽略重复调用`);
+            return;
+        }
+
         console.log(`[Session: ${sessionIdRef.current}] 用户确认了操作`);
+        setIsConfirming(true); // 设置确认状态锁
         setIsConfirmModalOpen(false);
 
         // 取消可能正在播放的确认文本
@@ -301,11 +322,12 @@ const MainPage = () => {
 
         // 执行工具调用
         executeToolAndHandleResult(toolId, params, currentSessionId, userId);
-    }, [pendingAction, speak, cancelTTS, resetUIState, isSpeaking, isListening, executeToolAndHandleResult]);
+    }, [isConfirming, pendingAction, speak, cancelTTS, resetUIState, isSpeaking, isListening, executeToolAndHandleResult]);
 
     const handleUserRetry = useCallback(() => {
         cancelTTS();
         setIsConfirmModalOpen(false);
+        setIsConfirming(false); // 重置确认状态锁
         console.log('User chose to retry.');
         setStatus('idle');
         setLastResponse(null);
@@ -315,6 +337,7 @@ const MainPage = () => {
     const handleUserCancel = useCallback(() => {
         console.log(`[Session: ${sessionIdRef.current}] 用户取消了操作`);
         setIsConfirmModalOpen(false);
+        setIsConfirming(false); // 重置确认状态锁
         speak("好的，操作已取消。", resetUIState);
     }, [speak, resetUIState]);
 
@@ -369,69 +392,13 @@ const MainPage = () => {
         setIsSidebarOpen(false);
     }, []);
 
-    // 处理语音确认的函数
-    const handleVoiceConfirmation = useCallback((voiceInput) => {
-        console.log("[MainPage] 收到语音确认输入:", voiceInput);
-        if (!voiceInput || status !== 'listening_confirm') return;
+    // 注意：语音确认处理已经移动到ConfirmationModal组件中，避免重复处理
 
-        // 使用意图分类来处理语音输入
-        const intent = classifyIntent(voiceInput);
-        console.log("[MainPage] 语音确认意图分类结果:", intent);
-
-        // 根据意图执行相应操作
-        switch (intent) {
-            case 'CONFIRM':
-                console.log("[MainPage] 识别到确认意图，执行操作");
-                handleUserConfirm();
-                break;
-            case 'RETRY':
-                console.log("[MainPage] 识别到重试意图，重置状态");
-                handleUserRetry();
-                break;
-            case 'CANCEL':
-                console.log("[MainPage] 识别到取消意图，取消操作");
-                handleUserCancel();
-                break;
-            default:
-                console.log("[MainPage] 未能明确识别意图，等待用户手动操作");
-                // 可以选择播放提示音或显示提示信息
-                speak("抱歉，我没听清楚您的回答，请说确认、取消或重试。", () => {
-                    // 重新启动语音识别
-                    if (!isListening) {
-                        startListening();
-                    }
-                });
-                break;
-        }
-    }, [status, classifyIntent, handleUserConfirm, handleUserRetry, handleUserCancel, speak, isListening, startListening]);
-
-    // 更新useEffect，监听语音输入并处理确认
-    useEffect(() => {
-        if (status === 'listening_confirm' && voiceTranscript && !isListening) {
-            // 当处于监听确认状态，且收到了新的识别结果，且监听已停止
-            console.log("[MainPage] 确认状态: 收到用户确认/取消的语音:", voiceTranscript);
-            handleVoiceConfirmation(voiceTranscript);
-            resetVoice(); // 处理完后重置 useVoice 状态
-        }
-    }, [status, voiceTranscript, isListening, resetVoice, handleVoiceConfirmation]);
-
-    // 处理语音识别错误
-    useEffect(() => {
-        if (voiceError) {
-            console.error("语音识别Hook报告错误:", voiceError);
-            // 根据错误类型决定是否向用户播报
-            if (status === 'listening_confirm') {
-                speak("抱歉，我没听清，请说确认或取消。", () => {
-                    setStatus('listening_confirm');
-                    startListening();
-                });
-            } else {
-                // 其他情况下的错误，可能需要重置
-                resetUIState();
-            }
-            resetVoice(); // 清除错误状态
-        }
-    }, [voiceError, status, speak, resetUIState, resetVoice, startListening]);
+    // 添加TTS完成回调函数
+    const handleTTSCompleted = useCallback(() => {
+        console.log("MainPage: ConfirmationModal TTS播报完成，准备监听用户确认");
+        setStatus('listening_confirm');
+    }, []);
 
     // UI Rendering
     return (
@@ -444,7 +411,18 @@ const MainPage = () => {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
         >
-            <StatusBar status={status} lastTranscript={lastTranscript} lastResponse={lastResponse} />
+            <StatusBar currentStatus={status} lastTranscript={lastTranscript} lastResponse={lastResponse} />
+
+            {/* 进度条 */}
+            <AnimatePresence>
+                {(status === 'listening' || status === 'thinking' || status === 'executing' || status === 'completed') && (
+                    <ProgressBar
+                        currentStage={status}
+                        visible={true}
+                        className="main-page-progress"
+                    />
+                )}
+            </AnimatePresence>
 
             {/* 侧边栏切换按钮 */}
             <button
@@ -466,23 +444,7 @@ const MainPage = () => {
                             exit={{ x: "-100%" }}
                             transition={{ duration: 0.3 }}
                         >
-                            <h2>可用工具</h2>
-                            <div className="tools-list">
-                                {availableTools.map(tool => (
-                                    <div
-                                        key={tool.id}
-                                        className="tool-item"
-                                        onClick={() => handleToolSelect(tool.id)}
-                                    >
-                                        <h3>{tool.name}</h3>
-                                        <p>{tool.description}</p>
-                                        <div className="tool-meta">
-                                            <span className="tool-type">{tool.type === 'mcp' ? 'MCP工具' : 'HTTP接口'}</span>
-                                            {tool.source && <span className="tool-source">来源: {tool.source}</span>}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
+                            <ToolsList onToolSelect={handleToolSelect} />
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -567,7 +529,7 @@ const MainPage = () => {
                         onResult={handleVoiceResult}
                         onError={handleVoiceError}
                         setStatus={setStatus}
-                        disabled={status !== 'idle'} // 添加禁用状态，仅在idle状态下启用语音按钮
+                        disabled={!['idle', 'listening'].includes(status)} // 允许在idle和listening状态下使用录音按钮
                     />
                 </div>
             </div>
@@ -586,6 +548,8 @@ const MainPage = () => {
                         useVoiceConfirmation={true}
                         startSTTListening={startListening}
                         stopSTTListening={stopListening}
+                        onTTSCompleted={handleTTSCompleted}
+                        voiceTranscript={voiceTranscript}
                     />
                 )}
             </AnimatePresence>

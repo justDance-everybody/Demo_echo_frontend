@@ -81,6 +81,30 @@
   color: var(--text-color, rgba(0, 0, 0, 0.7));
 }
 
+.time-display.warning {
+  color: #ff6b6b !important;
+  animation: pulse-warning 1s infinite;
+}
+
+.time-warning {
+  color: #ff6b6b;
+  font-weight: bold;
+}
+
+@keyframes pulse-warning {
+  0% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.6;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
 .visualizer-container {
   height: 1rem;
   width: 16rem;
@@ -122,6 +146,11 @@
   margin: 0;
 }
 
+.status-text.timeout {
+  color: #ff6b6b;
+  font-weight: bold;
+}
+
 .error-message {
   display: flex;
   justify-content: center;
@@ -159,6 +188,10 @@
   color: rgba(255, 255, 255, 0.7);
 }
 
+[data-theme="dark"] .time-display.warning {
+  color: rgba(255, 255, 255, 0.7);
+}
+
 [data-theme="dark"] .visualizer-bar {
   background-color: rgba(255, 255, 255, 0.1);
 }
@@ -187,5 +220,41 @@
 
   .visualizer-container {
     width: 12rem;
+  }
+}
+
+/* 不支持语音识别的消息样式 */
+.unsupported-message {
+  text-align: center;
+  padding: 1rem;
+  color: #666;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.unsupported-message p {
+  margin: 0.25rem 0;
+}
+
+/* 超时状态的录音按钮 */
+.recorder-button.timeout {
+  background-color: #ff6b6b;
+  color: white;
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-5px);
+  }
+
+  75% {
+    transform: translateX(5px);
   }
 }

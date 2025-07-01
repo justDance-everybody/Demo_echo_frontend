@@ -28,7 +28,7 @@ describe('MainPage 组件测试', () => {
   // 在所有测试前设置 mock
   beforeEach(() => {
     // 模拟 apiClient 方法
-    apiClient.getTools.mockResolvedValue([
+    apiClient.getItems.mockResolvedValue([
       { tool_id: 'weather', name: '天气查询', description: '查询天气', type: 'http' },
       { tool_id: 'calendar', name: '日程管理', description: '管理日程', type: 'http' }
     ]);
@@ -54,12 +54,12 @@ describe('MainPage 组件测试', () => {
 
     // 等待工具加载
     await waitFor(() => {
-      expect(apiClient.getTools).toHaveBeenCalled();
+      expect(apiClient.getItems).toHaveBeenCalled();
     });
 
     // 验证状态栏存在
     expect(screen.getByRole('banner')).toBeInTheDocument();
-    
+
     // 验证语音输入按钮存在
     expect(screen.getByRole('button', { name: /点击开始说话/i })).toBeInTheDocument();
   });
@@ -75,7 +75,7 @@ describe('MainPage 组件测试', () => {
 
     // 等待工具加载
     await waitFor(() => {
-      expect(apiClient.getTools).toHaveBeenCalled();
+      expect(apiClient.getItems).toHaveBeenCalled();
     });
 
     // 点击侧边栏切换按钮
@@ -85,9 +85,9 @@ describe('MainPage 组件测试', () => {
     // 验证工具列表显示
     await waitFor(() => {
       expect(screen.getByText('可用工具')).toBeInTheDocument();
-      expect(screen.getByText('天气查询')).toBeInTheDocument();
-      expect(screen.getByText('日程管理')).toBeInTheDocument();
     });
+    expect(screen.getByText('天气查询')).toBeInTheDocument();
+    expect(screen.getByText('日程管理')).toBeInTheDocument();
   });
 
   test('语音识别处理逻辑', async () => {
@@ -101,20 +101,20 @@ describe('MainPage 组件测试', () => {
 
     // 获取语音识别按钮
     const voiceButton = screen.getByRole('button', { name: /点击开始说话/i });
-    
+
     // 模拟语音识别结果
     const mockVoiceResult = jest.fn();
-    
+
     // 手动触发 VoiceRecorder 的 onResult 逻辑
     const component = screen.getByTestId('voice-recorder');
     component.onResult = mockVoiceResult;
-    
+
     // 模拟点击语音按钮
     fireEvent.click(voiceButton);
-    
+
     // 验证 API 调用
     await waitFor(() => {
-      expect(apiClient.getTools).toHaveBeenCalled();
+      expect(apiClient.getItems).toHaveBeenCalled();
     });
   });
 
@@ -135,7 +135,7 @@ describe('MainPage 组件测试', () => {
 
     // 等待工具加载
     await waitFor(() => {
-      expect(apiClient.getTools).toHaveBeenCalled();
+      expect(apiClient.getItems).toHaveBeenCalled();
     });
 
     // 手动调用 handleVoiceResult 函数

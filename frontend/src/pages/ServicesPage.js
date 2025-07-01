@@ -66,18 +66,19 @@ const ServicesPage = () => {
     setError(null);
 
     try {
-      const tools = await apiClient.getTools();
+      const result = await apiClient.getItems();
+      const items = result.items || [];
 
       // 将工具数据转换为服务格式
-      const mappedServices = tools.map(tool => ({
-        id: tool.id || tool.tool_id,
-        title: tool.name || tool.title,
-        description: tool.description,
-        tags: tool.tags || [],
-        type: tool.type || 'default',
-        provider: tool.provider || '系统',
-        createdAt: tool.created_at || new Date().toISOString(),
-        rating: tool.rating || (Math.random() * 2 + 3).toFixed(1) // 仅用于演示，实际中应使用工具的真实评分
+      const mappedServices = items.map(item => ({
+        id: item.id || item.tool_id,
+        title: item.name || item.title,
+        description: item.description,
+        tags: item.tags || [],
+        type: item.type || 'default',
+        provider: item.provider || '系统',
+        createdAt: item.created_at || new Date().toISOString(),
+        rating: item.rating || (Math.random() * 2 + 3).toFixed(1) // 仅用于演示，实际中应使用工具的真实评分
       }));
 
       setServices(mappedServices);

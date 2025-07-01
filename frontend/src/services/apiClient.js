@@ -150,7 +150,7 @@ const refreshToken = async () => {
 const interpret = async (transcript, sessionId, userId) => {
   try {
     console.log(`发送interpret请求，携带sessionId: ${sessionId}`);
-    const response = await api.post('/api/v1/interpret', {
+    const response = await api.post('/api/interpret', {
       query: transcript,
       sessionId: sessionId,
       userId: userId,
@@ -220,14 +220,31 @@ const execute = async (toolId, params, sessionId, userId) => {
   }
 };
 
-const getTools = async () => {
+const getItems = async (page = 1, pageSize = 10) => {
   try {
-    console.log("获取工具列表...");
-    const response = await api.get('/v1/api/tools');
-    console.log("工具列表响应:", response.data);
-    return response.data.tools; // 直接返回工具数组
+    console.log(`获取首页列表... 页码: ${page}, 每页数量: ${pageSize}`);
+    const response = await api.get('/api/services', {
+      params: {
+        page,
+        page_size: pageSize
+      }
+    });
+    console.log("首页列表响应:", response.data);
+
+    // 返回分页数据结构
+    return {
+      items: response.data.items || [],
+      pagination: {
+        current_page: response.data.current_page || page,
+        total_pages: response.data.total_pages || 1,
+        total_items: response.data.total_items || response.data.items?.length || 0,
+        page_size: response.data.page_size || pageSize,
+        has_next: response.data.has_next || false,
+        has_prev: response.data.has_prev || false
+      }
+    };
   } catch (error) {
-    console.error('获取工具列表失败:', error);
+    console.error('获取首页列表失败:', error);
     throw error;
   }
 };
@@ -401,7 +418,7 @@ const apiClientInstance = {
   refreshToken,
   interpret,
   execute,
-  getTools,
+  getItems,
   getToolById,
   // If there are specific developer tool functions that components might use via `apiClient.someFunc()`,
   // they could be added here too. For now, DeveloperConsolePage uses the generic get, put, delete.

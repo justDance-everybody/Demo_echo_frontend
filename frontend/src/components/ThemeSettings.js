@@ -84,7 +84,7 @@ const ColorPicker = styled.input`
   
   &::-webkit-color-swatch {
     border: none;
-    border-radius: 6px;
+    border-radius: var(--border-radius, 6px);
   }
   
   &:focus {
@@ -123,7 +123,7 @@ const Button = styled.button`
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
-  border-radius: 8px;
+  border-radius: var(--border-radius, 8px);
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 0.9rem;
@@ -161,7 +161,16 @@ const ThemeSettings = () => {
   const [borderRadius, setBorderRadius] = useState(
     () => {
       const value = getComputedStyle(document.documentElement).getPropertyValue('--border-radius').trim();
-      return parseInt(value) || 8;
+
+      // 更智能的解析：提取数字并转换单位
+      if (value.includes('rem')) {
+        return Math.round(parseFloat(value) * 16); // 1rem = 16px
+      } else if (value.includes('px')) {
+        return parseInt(value);
+      }
+
+      // 如果没有值或解析失败，返回默认值8px
+      return 8;
     }
   );
 
@@ -184,6 +193,13 @@ const ThemeSettings = () => {
     const value = e.target.value;
     setBorderRadius(value);
     updateThemeVariable('--border-radius', `${value}px`);
+
+    // 调试信息：检查CSS变量是否成功设置
+    console.log('圆角设置:', {
+      sliderValue: value,
+      cssVariable: `--border-radius: ${value}px`,
+      computedValue: getComputedStyle(document.documentElement).getPropertyValue('--border-radius')
+    });
   };
 
   const advancedSettingsId = "advanced-settings-panel";
