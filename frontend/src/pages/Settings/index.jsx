@@ -2,13 +2,19 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { useTheme } from '../../contexts/ThemeContext';
 import ThemeToggle from '../../components/ThemeToggle';
+import ThemeSettings from '../../components/ThemeSettings';
 import StyleEditor from '../../components/StyleEditor';
+import { Tabs } from 'antd-mobile';
 
 // 设置页面容器
 const SettingsContainer = styled.div`
-  padding: 2rem;
+  padding: 1.5rem;
   max-width: 1200px;
   margin: 0 auto;
+  
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
 `;
 
 // 标题样式
@@ -17,179 +23,216 @@ const Title = styled.h1`
   font-size: 2rem;
   font-weight: 600;
   color: var(--text-color);
+  display: flex;
+  align-items: center;
+  justify-content: center; /* 水平居中 */
+  gap: 0.75rem;
+  text-align: center; /* 确保文本居中 */
 `;
 
-// 设置卡片容器
+// 设置卡片容器 - 优化间距
 const SettingsCardContainer = styled.div`
   display: grid;
-  gap: 1.5rem;
+  gap: 1.5rem; /* 统一卡片间距 */
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem; /* 与其他元素保持一致的间距 */
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 1rem; /* 移动端稍小的间距 */
+    margin-bottom: 1rem;
+  }
 `;
 
-// 设置卡片
+// 统一的设置卡片样式
 const SettingsCard = styled.div`
-  background-color: var(--card-bg);
+  background-color: var(--surface);
   padding: 1.5rem;
-  border-radius: var(--border-radius, 8px);
-  box-shadow: var(--card-shadow, 0 2px 5px rgba(0, 0, 0, 0.1));
+  border-radius: var(--border-radius, 12px); /* 使用动态圆角 */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
   
+  &:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  }
+  
+  /* 统一卡片标题样式 */
   h2 {
     font-size: 1.25rem;
-    margin-bottom: 1rem;
-    font-weight: 500;
+    margin: 0 0 0.75rem 0;
+    font-weight: 600;
     color: var(--text-color);
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
+    line-height: 1.4;
+    text-align: left; /* 确保标题左对齐 */
   }
   
-  p {
-    margin-bottom: 1rem;
+  /* 统一描述文字样式 */
+  > p {
+    margin: 0 0 1.25rem 0;
     color: var(--text-secondary);
     font-size: 0.9rem;
+    line-height: 1.5;
+    text-align: left; /* 确保卡片描述左对齐 */
   }
   
+  /* 统一分割线样式 */
   hr {
-    margin: 1rem 0;
+    margin: 1.25rem 0;
     border: none;
     border-top: 1px solid var(--border-color);
   }
 `;
 
-// 使用styled-components分组样式
-const SettingsGroup = styled.div`
-  margin-bottom: 1.5rem;
-  border-bottom: 1px solid var(--border-color);
-  padding-bottom: 1rem;
+// 全宽卡片（用于主题设置和高级样式）- 优化间距
+const FullWidthCard = styled(SettingsCard)`
+  grid-column: 1 / -1;
+  margin-bottom: 1.5rem; /* 与其他卡片保持一致的间距 */
   
   &:last-child {
-    border-bottom: none;
+    margin-bottom: 0; /* 最后一个卡片不需要底部间距 */
   }
   
-  h3 {
-    font-size: 1rem;
-    margin-bottom: 0.75rem;
-    color: var(--text-color);
-    font-weight: 500;
+  @media (max-width: 768px) {
+    margin-bottom: 1rem;
   }
 `;
 
-// 选项卡容器
-const TabsContainer = styled.div`
-  display: flex;
-  border-bottom: 1px solid var(--border-color);
+
+
+const StyledTabs = styled(Tabs)`
+  --active-line-color: var(--primary-color);
+  --active-title-color: var(--primary-color);
+  --title-font-size: 1rem;
   margin-bottom: 1.5rem;
-`;
-
-// 选项卡
-const Tab = styled.button`
-  padding: 0.75rem 1.5rem;
-  background: none;
-  border: none;
-  border-bottom: 3px solid ${props => props.active ? 'var(--primary-color)' : 'transparent'};
-  color: ${props => props.active ? 'var(--primary-color)' : 'var(--text-secondary)'};
-  font-weight: ${props => props.active ? '600' : '400'};
-  cursor: pointer;
-  transition: all 0.2s ease;
   
-  &:hover {
-    color: var(--primary-color);
+  .adm-tabs-tab {
+    color: var(--text-color) !important;
+  }
+  
+  .adm-tabs-tab-active {
+    color: var(--primary-color) !important;
+  }
+  
+  /* 确保暗色模式下的文字可见性 */
+  [data-theme="dark"] & {
+    .adm-tabs-tab {
+      color: var(--dark-text) !important;
+    }
+    
+    .adm-tabs-tab-active {
+      color: var(--primary-color) !important;
+    }
   }
 `;
 
-// 设置行
+// 统一的设置行样式
 const SettingRow = styled.div`
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 0;
+  align-items: flex-start;
+  padding: 1rem 0;
   border-bottom: 1px solid var(--border-color);
   
   &:last-child {
     border-bottom: none;
+    padding-bottom: 0;
   }
   
+  &:first-child {
+    padding-top: 0;
+  }
+  
+  /* 左侧标签区域 */
+  .label-section {
+    flex: 1;
+    margin-right: 1rem;
+  }
+  
+  /* 统一标签样式 */
   label {
+    display: block;
     color: var(--text-color);
     font-weight: 500;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    margin-bottom: 0.25rem;
+    text-align: left; /* 确保设置项标题左对齐 */
   }
   
+  /* 统一描述样式 */
   .description {
     color: var(--text-secondary);
     font-size: 0.85rem;
-    margin-top: 0.25rem;
+    line-height: 1.4;
+    margin: 0;
+    text-align: left; /* 确保设置项描述左对齐 */
+  }
+  
+  /* 控件区域 */
+  .control-section {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  
+  /* 选择框样式 */
+  select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius, 8px);
+    background-color: var(--surface);
+    color: var(--text-color);
+    font-size: 0.9rem;
+    min-width: 120px;
+    
+    &:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px rgba(79, 209, 197, 0.2);
+    }
   }
 `;
 
 // 设置页面主要内容
 const Settings = () => {
   const { theme } = useTheme();
-  const [activeTab, setActiveTab] = useState('appearance'); // 默认显示appearance选项卡
-  
+  const [activeTab, setActiveTab] = useState('appearance');
+
   return (
     <SettingsContainer>
       <Title>
         <span aria-hidden="true">⚙️</span>
         设置
       </Title>
-      
-      {/* 选项卡导航 */}
-      <TabsContainer role="tablist" aria-label="设置类别">
-        <Tab 
-          role="tab"
-          id="tab-appearance"
-          aria-controls="tabpanel-appearance"
-          aria-selected={activeTab === 'appearance'} 
-          onClick={() => setActiveTab('appearance')}
-        >
-          外观和主题
-        </Tab>
-        <Tab 
-          role="tab"
-          id="tab-advanced"
-          aria-controls="tabpanel-advanced"
-          aria-selected={activeTab === 'advanced'} 
-          onClick={() => setActiveTab('advanced')}
-        >
-          高级设置
-        </Tab>
-        <Tab 
-          role="tab"
-          id="tab-account"
-          aria-controls="tabpanel-account"
-          aria-selected={activeTab === 'account'} 
-          onClick={() => setActiveTab('account')}
-        >
-          账户设置
-        </Tab>
-      </TabsContainer>
 
-      {/* 外观设置选项卡面板 */}
-      {activeTab === 'appearance' && (
-        <div role="tabpanel" id="tabpanel-appearance" aria-labelledby="tab-appearance">
+      <StyledTabs activeKey={activeTab} onChange={setActiveTab}>
+        <Tabs.Tab title="外观和主题" key="appearance">
           <SettingsCardContainer>
             {/* 主题模式设置卡片 */}
             <SettingsCard>
               <h2>
-                <span aria-hidden="true">🎨</span>
+                <span aria-hidden="true">🌓</span>
                 主题模式
               </h2>
               <p>切换应用的亮色或暗色主题模式。</p>
-              
-              <SettingsGroup>
-                <SettingRow>
-                  <div>
-                    <label htmlFor="theme-toggle-button-instance">当前主题</label>
-                    <div className="description">
-                      {theme.isDark ? '暗色主题' : '亮色主题'}
-                    </div>
+
+              <SettingRow>
+                <div className="label-section">
+                  <label htmlFor="theme-toggle-button-instance">当前主题</label>
+                  <div className="description">
+                    {theme.isDark ? '暗色主题' : '亮色主题'}
                   </div>
+                </div>
+                <div className="control-section">
                   <ThemeToggle id="theme-toggle-button-instance" />
-                </SettingRow>
-              </SettingsGroup>
+                </div>
+              </SettingRow>
             </SettingsCard>
-            
+
             {/* 字体设置卡片 */}
             <SettingsCard>
               <h2>
@@ -197,246 +240,161 @@ const Settings = () => {
                 字体设置
               </h2>
               <p>自定义应用中使用的字体和字体大小。</p>
-              
-              <SettingsGroup>
-                <SettingRow>
-                  <div>
-                    <label htmlFor="font-family-select">应用字体</label>
-                    <div className="description">
-                      修改整个应用的默认字体
-                    </div>
+
+              <SettingRow>
+                <div className="label-section">
+                  <label htmlFor="font-family-select">应用字体</label>
+                  <div className="description">
+                    修改整个应用的默认字体
                   </div>
-                  <select id="font-family-select" defaultValue="system">
+                </div>
+                <div className="control-section">
+                  <select id="font-family-select" defaultValue="system" aria-label="选择应用字体">
                     <option value="system">系统默认</option>
                     <option value="sans-serif">Sans-serif</option>
                     <option value="serif">Serif</option>
                     <option value="monospace">等宽字体</option>
                   </select>
-                </SettingRow>
-                
-                <SettingRow>
-                  <div>
-                    <label htmlFor="font-size-select">字体大小</label>
-                    <div className="description">
-                      调整应用的整体字体大小
-                    </div>
+                </div>
+              </SettingRow>
+
+              <SettingRow>
+                <div className="label-section">
+                  <label htmlFor="font-size-select">字体大小</label>
+                  <div className="description">
+                    调整应用的整体字体大小
                   </div>
-                  <select id="font-size-select" defaultValue="medium">
+                </div>
+                <div className="control-section">
+                  <select id="font-size-select" defaultValue="medium" aria-label="选择字体大小">
                     <option value="small">小</option>
                     <option value="medium">中</option>
                     <option value="large">大</option>
                   </select>
-                </SettingRow>
-              </SettingsGroup>
+                </div>
+              </SettingRow>
             </SettingsCard>
           </SettingsCardContainer>
-          
-          {/* 样式编辑器 */}
-          <SettingsCard>
+
+          {/* 主题设置 - 全宽卡片 */}
+          <FullWidthCard>
             <h2>
-              <span aria-hidden="true">🎭</span>
-              主题样式自定义
+              <span aria-hidden="true">🎨</span>
+              主题自定义
             </h2>
-            <p>自定义应用的颜色、样式和外观。</p>
+            <p>自定义应用的颜色、圆角等主题参数。</p>
+            <hr />
+            <ThemeSettings />
+          </FullWidthCard>
+
+          {/* 高级样式编辑器 - 全宽卡片 */}
+          <FullWidthCard>
+            <h2>
+              <span aria-hidden="true">✨</span>
+              高级样式
+            </h2>
+            <p>直接编辑和应用自定义CSS样式。</p>
             <hr />
             <StyleEditor />
-          </SettingsCard>
-        </div>
-      )}
-      
-      {/* 高级设置选项卡面板 */}
-      {activeTab === 'advanced' && (
-        <div role="tabpanel" id="tabpanel-advanced" aria-labelledby="tab-advanced">
+          </FullWidthCard>
+        </Tabs.Tab>
+
+        <Tabs.Tab title="高级设置" key="advanced">
           <SettingsCardContainer>
             <SettingsCard>
               <h2>
-                <span aria-hidden="true">⚙️</span>
-                高级功能
+                <span aria-hidden="true">🔧</span>
+                高级选项
               </h2>
-              <p>配置应用的高级功能和行为。</p>
-              
-              <SettingsGroup>
-                <h3>性能选项</h3>
-                <SettingRow>
-                  <div>
-                    <label htmlFor="developer-mode-checkbox">开发者模式</label>
-                    <div className="description">
-                      启用额外的调试功能和控制台输出
-                    </div>
+              <p>配置应用的高级功能和性能选项。</p>
+
+              <SettingRow>
+                <div className="label-section">
+                  <label htmlFor="cache-setting">缓存设置</label>
+                  <div className="description">
+                    控制应用数据的缓存策略
                   </div>
-                  <input type="checkbox" id="developer-mode-checkbox" />
-                </SettingRow>
-                
-                <SettingRow>
-                  <div>
-                    <label htmlFor="performance-mode-checkbox">性能模式</label>
-                    <div className="description">
-                      优化应用性能，但可能会减少某些视觉效果
-                    </div>
+                </div>
+                <div className="control-section">
+                  <select id="cache-setting" defaultValue="auto">
+                    <option value="auto">自动</option>
+                    <option value="aggressive">积极缓存</option>
+                    <option value="minimal">最小缓存</option>
+                  </select>
+                </div>
+              </SettingRow>
+
+              <SettingRow>
+                <div className="label-section">
+                  <label htmlFor="debug-mode">调试模式</label>
+                  <div className="description">
+                    启用开发者调试功能
                   </div>
-                  <input type="checkbox" id="performance-mode-checkbox" />
-                </SettingRow>
-              </SettingsGroup>
-              
-              <SettingsGroup>
-                <h3>数据管理</h3>
-                <SettingRow>
-                  <div>
-                    <label>缓存数据</label>
-                    <div className="description">
-                      清除应用缓存的数据和设置
-                    </div>
-                  </div>
-                  <button>清除缓存</button>
-                </SettingRow>
-              </SettingsGroup>
-            </SettingsCard>
-            
-            <SettingsCard>
-              <h2>
-                <span aria-hidden="true">🔌</span>
-                API 设置
-              </h2>
-              <p>配置API连接和认证设置。</p>
-              
-              <SettingsGroup>
-                <SettingRow>
-                  <div>
-                    <label htmlFor="api-endpoint-input">API端点</label>
-                    <div className="description">
-                      设置默认API服务器地址
-                    </div>
-                  </div>
-                  <input 
-                    type="text" 
-                    id="api-endpoint-input"
-                    defaultValue="https://api.example.com" 
-                    style={{ width: '180px' }}
-                  />
-                </SettingRow>
-                
-                <SettingRow>
-                  <div>
-                    <label htmlFor="api-timeout-input">请求超时</label>
-                    <div className="description">
-                      API请求超时时间（秒）
-                    </div>
-                  </div>
-                  <input 
-                    type="number" 
-                    id="api-timeout-input"
-                    defaultValue={30} 
-                    min={5} 
-                    max={120}
-                    style={{ width: '80px' }}
-                  />
-                </SettingRow>
-              </SettingsGroup>
+                </div>
+                <div className="control-section">
+                  <select id="debug-mode" defaultValue="disabled">
+                    <option value="disabled">禁用</option>
+                    <option value="enabled">启用</option>
+                  </select>
+                </div>
+              </SettingRow>
             </SettingsCard>
           </SettingsCardContainer>
-        </div>
-      )}
-      
-      {/* 账户设置选项卡面板 */}
-      {activeTab === 'account' && (
-        <div role="tabpanel" id="tabpanel-account" aria-labelledby="tab-account">
+        </Tabs.Tab>
+
+        <Tabs.Tab title="账户设置" key="account">
           <SettingsCardContainer>
             <SettingsCard>
               <h2>
                 <span aria-hidden="true">👤</span>
-                账户详情
+                账户信息
               </h2>
-              <p>管理您的账户信息和偏好。</p>
-              
-              <SettingsGroup>
-                <SettingRow>
-                  <div>
-                    <label htmlFor="username-input">用户名</label>
-                    <div className="description">
-                      您的账户显示名称
-                    </div>
+              <p>管理您的账户信息和隐私设置。</p>
+
+              <SettingRow>
+                <div className="label-section">
+                  <label htmlFor="username-input">用户名</label>
+                  <div className="description">
+                    您的显示名称
                   </div>
-                  <input 
-                    type="text" 
+                </div>
+                <div className="control-section">
+                  <input
                     id="username-input"
-                    defaultValue="用户名" 
-                    style={{ width: '180px' }}
+                    type="text"
+                    defaultValue="用户"
+                    style={{
+                      padding: '0.5rem 0.75rem',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '8px',
+                      backgroundColor: 'var(--surface)',
+                      color: 'var(--text-color)',
+                      fontSize: '0.9rem',
+                      minWidth: '120px'
+                    }}
                   />
-                </SettingRow>
-                
-                <SettingRow>
-                  <div>
-                    <label htmlFor="email-input">邮箱地址</label>
-                    <div className="description">
-                      用于通知和账户恢复
-                    </div>
+                </div>
+              </SettingRow>
+
+              <SettingRow>
+                <div className="label-section">
+                  <label htmlFor="privacy-setting">隐私设置</label>
+                  <div className="description">
+                    控制数据收集和分析
                   </div>
-                  <input 
-                    type="email" 
-                    id="email-input"
-                    defaultValue="user@example.com" 
-                    style={{ width: '180px' }}
-                  />
-                </SettingRow>
-                
-                <SettingRow>
-                  <div>
-                    <label>更改密码</label>
-                    <div className="description">
-                      修改您的账户密码
-                    </div>
-                  </div>
-                  <button>更改密码</button>
-                </SettingRow>
-              </SettingsGroup>
-            </SettingsCard>
-            
-            <SettingsCard>
-              <h2>
-                <span aria-hidden="true">🔔</span>
-                通知设置
-              </h2>
-              <p>管理您接收通知的方式和频率。</p>
-              
-              <SettingsGroup>
-                <SettingRow>
-                  <div>
-                    <label htmlFor="email-notifications-checkbox">电子邮件通知</label>
-                    <div className="description">
-                      通过电子邮件接收通知
-                    </div>
-                  </div>
-                  <input type="checkbox" id="email-notifications-checkbox" defaultChecked />
-                </SettingRow>
-                
-                <SettingRow>
-                  <div>
-                    <label htmlFor="system-notifications-checkbox">系统通知</label>
-                    <div className="description">
-                      显示浏览器或桌面通知
-                    </div>
-                  </div>
-                  <input type="checkbox" id="system-notifications-checkbox" defaultChecked />
-                </SettingRow>
-                
-                <SettingRow>
-                  <div>
-                    <label htmlFor="notification-frequency-select">通知频率</label>
-                    <div className="description">
-                      设置通知发送频率
-                    </div>
-                  </div>
-                  <select id="notification-frequency-select" defaultValue="immediate">
-                    <option value="immediate">实时</option>
-                    <option value="daily">每日摘要</option>
-                    <option value="weekly">每周摘要</option>
+                </div>
+                <div className="control-section">
+                  <select id="privacy-setting" defaultValue="standard">
+                    <option value="strict">严格</option>
+                    <option value="standard">标准</option>
+                    <option value="relaxed">宽松</option>
                   </select>
-                </SettingRow>
-              </SettingsGroup>
+                </div>
+              </SettingRow>
             </SettingsCard>
           </SettingsCardContainer>
-        </div>
-      )}
+        </Tabs.Tab>
+      </StyledTabs>
     </SettingsContainer>
   );
 };

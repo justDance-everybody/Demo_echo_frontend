@@ -38,6 +38,15 @@ class MessageService {
   }
 
   /**
+   * 显示错误消息 (符合文档验收标准的API)
+   * @param {string} message 错误消息内容
+   * @param {number} duration 显示时长（毫秒）
+   */
+  static showError(message, duration = 2000) {
+    this.error(message, duration);
+  }
+
+  /**
    * 显示加载提示
    * @param {string} content 提示内容
    * @param {number} duration 显示时长，默认为0（不自动关闭）
@@ -49,7 +58,7 @@ class MessageService {
       icon: 'loading',
       duration,
     });
-    
+
     return () => Toast.clear();
   }
 
@@ -67,7 +76,7 @@ class MessageService {
         title,
         ...options,
       });
-      
+
       return result; // 如果用户点击确认，返回true
     } catch (e) {
       return false; // 如果用户点击取消，返回false

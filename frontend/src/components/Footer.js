@@ -28,7 +28,7 @@ const FooterContent = styled.div`
 
 // 页脚列
 const FooterColumn = styled.div`
-  h3 {
+  h2 {
     font-size: 1.1rem;
     margin-bottom: 1rem;
     color: var(--text-color);
@@ -99,58 +99,55 @@ const SocialLinks = styled.div`
 const Footer = () => {
   const { theme } = useTheme();
   const currentYear = new Date().getFullYear();
-  
+
   return (
     <FooterContainer>
       <FooterContent>
         <FooterColumn>
-          <h3>关于我们</h3>
+          <h2>关于我们</h2>
           <ul>
-            <li><Link to="/about">平台介绍</Link></li>
-            <li><Link to="/team">团队成员</Link></li>
-            <li><Link to="/contact">联系我们</Link></li>
-            <li><Link to="/careers">招聘信息</Link></li>
+            <li><Link to="/about">公司介绍</Link></li>
+            <li><Link to="/team">团队介绍</Link></li>
+            <li><Link to="/careers">加入我们</Link></li>
           </ul>
         </FooterColumn>
-        
+
         <FooterColumn>
-          <h3>资源</h3>
+          <h2>资源</h2>
           <ul>
-            <li><Link to="/docs">开发文档</Link></li>
-            <li><Link to="/api">API参考</Link></li>
-            <li><Link to="/examples">示例代码</Link></li>
+            <li><Link to="/docs">使用文档</Link></li>
+            <li><Link to="/api">API文档</Link></li>
             <li><Link to="/blog">技术博客</Link></li>
           </ul>
         </FooterColumn>
-        
+
         <FooterColumn>
-          <h3>支持</h3>
+          <h2>支持</h2>
           <ul>
             <li><Link to="/help">帮助中心</Link></li>
             <li><Link to="/faq">常见问题</Link></li>
-            <li><Link to="/feedback">反馈建议</Link></li>
-            <li><Link to="/status">系统状态</Link></li>
+            <li><Link to="/feedback">意见反馈</Link></li>
           </ul>
         </FooterColumn>
-        
+
         <FooterColumn>
-          <h3>联系信息</h3>
-          <p>邮箱: support@echo-ai.com</p>
-          <p>电话: 400-800-8888</p>
-          <p>地址: 北京市海淀区科技园</p>
+          <h2>联系信息</h2>
+          <p>邮箱：support@echo.ai</p>
+          <p>电话：400-123-4567</p>
+          <p>地址：北京市海淀区</p>
         </FooterColumn>
       </FooterContent>
-      
+
       <CopyrightSection>
         <p>
           © {currentYear} Echo AI 语音助手平台 版权所有
         </p>
         <p>
-          <Link to="/privacy">隐私政策</Link> | 
-          <Link to="/terms"> 服务条款</Link> | 
+          <Link to="/privacy">隐私政策</Link> |
+          <Link to="/terms"> 服务条款</Link> |
           <Link to="/sitemap"> 网站地图</Link>
         </p>
-        
+
         <SocialLinks>
           <a href="https://github.com/echo-ai" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
             <span role="img" aria-label="github">📂</span>
