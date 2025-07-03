@@ -69,7 +69,7 @@ describe('DeveloperConsolePage', () => {
     apiClient.put.mockReset();
     apiClient.delete.mockReset();
     // Mock window.confirm for delete operations
-    window.confirm = jest.fn(() => true);
+    window.confirm = jest.fn(() => true); 
   });
 
   test('renders access restricted message if user is not a developer', () => {
@@ -105,7 +105,7 @@ describe('DeveloperConsolePage', () => {
       renderWithAuth(<DeveloperConsolePage />, { providerProps: developerUserProps });
 
       expect(screen.getByText('正在加载工具...')).toBeInTheDocument();
-
+      
       expect(await screen.findByText('My Test Dify App')).toBeInTheDocument();
       expect(screen.getByText('My Test Coze Bot')).toBeInTheDocument();
       expect(apiClient.get).toHaveBeenCalledWith('/api/dev/tools');
@@ -132,7 +132,7 @@ describe('DeveloperConsolePage', () => {
     test('handles tool status toggle successfully', async () => {
       apiClient.get.mockResolvedValueOnce({ data: { tools: [mockDeveloperTools[0]] } }); // Load only one tool for simplicity
       apiClient.put.mockResolvedValueOnce({ data: { ...mockDeveloperTools[0], status: 'disabled' } });
-
+      
       renderWithAuth(<DeveloperConsolePage />, { providerProps: developerUserProps });
 
       const initialToolName = mockDeveloperTools[0].name;
@@ -152,19 +152,19 @@ describe('DeveloperConsolePage', () => {
     test('handles tool deletion successfully', async () => {
       apiClient.get.mockResolvedValueOnce({ data: { tools: mockDeveloperTools } });
       apiClient.delete.mockResolvedValueOnce({}); // Successful delete returns 204 or empty object
-
+      
       renderWithAuth(<DeveloperConsolePage />, { providerProps: developerUserProps });
 
       const toolNameToDelete = mockDeveloperTools[1].name;
       expect(await screen.findByText(toolNameToDelete)).toBeInTheDocument();
-
+      
       // Find delete button associated with the second tool
       // Assuming order is preserved and each item has 3 buttons: Edit, Toggle, Delete
       const deleteButtons = screen.getAllByRole('button', { name: '删除' });
       fireEvent.click(deleteButtons[1]); // Click the delete button for the second tool
 
       expect(window.confirm).toHaveBeenCalledWith('您确定要删除这个工具吗？此操作无法撤销。');
-
+      
       await waitFor(() => {
         expect(apiClient.delete).toHaveBeenCalledWith(`/api/dev/tools/${mockDeveloperTools[1].tool_id}`);
       });
@@ -178,12 +178,10 @@ describe('DeveloperConsolePage', () => {
       expect(screen.getByText(mockDeveloperTools[0].name)).toBeInTheDocument();
     });
 
-    test('Add Service Form is present', async () => {
+    test('Add New Tool button is present', async () => {
       apiClient.get.mockResolvedValueOnce({ data: { tools: [] } });
       renderWithAuth(<DeveloperConsolePage />, { providerProps: developerUserProps });
-      expect(await screen.findByText('添加新服务')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: '保存服务' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: '发送测试请求' })).toBeInTheDocument();
+      expect(await screen.findByRole('button', { name: '+ 添加新工具' })).toBeInTheDocument();
     });
   });
 }); 

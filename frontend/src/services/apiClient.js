@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  timeout: 15000,
+  timeout: 15000, 
 });
 
 api.interceptors.request.use(
@@ -19,7 +19,7 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response) => {
-    return response; // Return full response for handling in calling function
+     return response; // Return full response for handling in calling function
   },
   (error) => {
     console.error("API Error Interceptor:", error); // Log the raw error
@@ -35,12 +35,12 @@ api.interceptors.response.use(
         // Consider redirecting: window.location.href = '/login'; 
       } else if (data?.detail) { // FastAPI validation errors often in 'detail'
         if (Array.isArray(data.detail)) { // Handle list of validation errors
-          errorMsg = data.detail.map(err => `${err.loc ? err.loc.join('.') + ': ' : ''}${err.msg}`).join('; ');
+            errorMsg = data.detail.map(err => `${err.loc ? err.loc.join('.')+': ' : ''}${err.msg}`).join('; ');
         } else {
-          errorMsg = data.detail; // Handle single string detail
+            errorMsg = data.detail; // Handle single string detail
         }
       } else {
-        errorMsg = data?.error?.msg || data?.error?.message || `请求失败，状态码: ${status}`;
+         errorMsg = data?.error?.message || `请求失败，状态码: ${status}`;
       }
     } else if (error.request) {
       // The request was made but no response was received
@@ -51,8 +51,8 @@ api.interceptors.response.use(
       console.error('API Error: Request setup error', error.message);
       errorMsg = `请求设置错误: ${error.message}`;
     }
-    // Instead of rejecting with just message, reject with an object 
-    // containing message and maybe original error for more context
+     // Instead of rejecting with just message, reject with an object 
+     // containing message and maybe original error for more context
     return Promise.reject({ message: errorMsg, originalError: error });
   }
 );
@@ -71,19 +71,19 @@ const setAuthToken = (token) => {
 // 用户登录
 const login = async (username, password) => {
   try {
-    const response = await api.post('/auth/login', {
+    const response = await api.post('/api/auth/login', {
       username,
       password
     });
-
+    
     // 确保返回成功状态和处理用户角色
     return {
       success: true,
-      token: response.data.token,
+      token: response.data.access_token,
       user: {
-        id: response.data.user.id,
-        username: response.data.user.username,
-        role: response.data.user.role || 'user' // 确保获取角色信息，默认为user
+        id: response.data.user_id,
+        username: response.data.username,
+        role: response.data.role || 'user' // 确保获取角色信息，默认为user
       }
     };
   } catch (error) {
@@ -98,20 +98,19 @@ const login = async (username, password) => {
 // 用户注册
 const register = async (username, password, email) => {
   try {
-    const response = await api.post('/auth/register', {
+    const response = await api.post('/api/auth/register', {
       username,
       password,
       email
     });
-
-    // 确保返回成功状态和处理用户角色，注册成功后也应该包含token
+    
+    // 确保返回成功状态和处理用户角色
     return {
       success: true,
-      token: response.data.token,
       user: {
-        id: response.data.user.id,
-        username: response.data.user.username,
-        role: response.data.user.role || 'user' // 确保获取角色信息，默认为user
+        id: response.data.id,
+        username: response.data.username,
+        role: response.data.role || 'user' // 确保获取角色信息，默认为user
       }
     };
   } catch (error) {
@@ -148,112 +147,95 @@ const refreshToken = async () => {
 // 原有的API方法
 
 const interpret = async (transcript, sessionId, userId) => {
-  try {
-    console.log(`发送interpret请求，携带sessionId: ${sessionId}`);
-    const response = await api.post('/api/interpret', {
-      query: transcript,
-      sessionId: sessionId,
-      userId: userId,
-    });
-    console.log(`收到interpret响应:`, response.data);
-
-    // 检查响应中是否返回了sessionId，并记录
-    if (response.data && response.data.sessionId) {
-      console.log(`响应中包含sessionId: ${response.data.sessionId}`);
-    } else {
-      console.warn(`⚠️ 警告: 响应中未找到sessionId! 响应数据:`, response.data);
+    try {
+        console.log(`发送interpret请求，携带sessionId: ${sessionId}`);
+        const response = await api.post('/api/v1/interpret', {
+            query: transcript, 
+            sessionId: sessionId,
+            userId: userId,
+        });
+        console.log(`收到interpret响应:`, response.data);
+        
+        // 检查响应中是否返回了sessionId，并记录
+        if (response.data && response.data.sessionId) {
+            console.log(`响应中包含sessionId: ${response.data.sessionId}`);
+        } else {
+            console.warn(`⚠️ 警告: 响应中未找到sessionId! 响应数据:`, response.data);
+        }
+        
+        return response.data; // Extract data from successful response
+    } catch (error) {
+         console.error('API call to interpret failed in function:', error);
+         // Re-throw the processed error object from the interceptor
+         throw error; 
     }
-
-    return response.data; // Extract data from successful response
-  } catch (error) {
-    console.error('API call to interpret failed in function:', error);
-    // Re-throw the processed error object from the interceptor
-    throw error;
-  }
 };
 
 const execute = async (toolId, params, sessionId, userId) => {
-  try {
-    // 参数验证
-    if (!toolId) {
-      throw new Error('工具ID不能为空');
+    try {
+        // 参数验证
+        if (!toolId) {
+            throw new Error('工具ID不能为空');
+        }
+        if (!params || typeof params !== 'object') {
+            throw new Error('参数必须是一个对象');
+        }
+        
+        // 确保userId是字符串类型
+        const userIdStr = userId ? String(userId) : null;
+        
+        console.log(`发送execute请求，携带sessionId: ${sessionId}`);
+        
+        // 确保后端请求参数严格符合后端ExecuteRequest模型
+        const requestData = {
+            tool_id: toolId,
+            params: params,
+            sessionId: sessionId, // 使用sessionId作为会话ID字段
+        };
+        
+        // 只有在有userId值的情况下才添加此字段，并使用user_id字段名
+        if (userIdStr) {
+            requestData.user_id = userIdStr;
+        }
+        
+        console.log("准备发送execute请求数据:", requestData);
+        
+        const response = await api.post('/api/v1/execute', requestData);
+        
+        console.log("Execute API Response:", response);
+        
+        // 检查响应中是否返回了sessionId，并记录
+        if (response.data && response.data.sessionId) {
+            console.log(`Execute响应中包含sessionId: ${response.data.sessionId}`);
+        } else {
+            console.warn(`⚠️ 警告: Execute响应中未找到sessionId! 响应数据:`, response.data);
+        }
+        
+        return response.data; 
+    } catch (error) {
+        console.error('API call to execute failed in function:', error);
+        // Re-throw the processed error object from the interceptor
+         throw error; 
     }
-    if (!params || typeof params !== 'object') {
-      throw new Error('参数必须是一个对象');
-    }
-
-    // 确保userId是字符串类型
-    const userIdStr = userId ? String(userId) : null;
-
-    console.log(`发送execute请求，携带sessionId: ${sessionId}`);
-
-    // 确保后端请求参数严格符合后端ExecuteRequest模型
-    const requestData = {
-      tool_id: toolId,
-      params: params,
-      sessionId: sessionId, // 使用sessionId作为会话ID字段
-    };
-
-    // 只有在有userId值的情况下才添加此字段，并使用user_id字段名
-    if (userIdStr) {
-      requestData.user_id = userIdStr;
-    }
-
-    console.log("准备发送execute请求数据:", requestData);
-
-    const response = await api.post('/api/v1/execute', requestData);
-
-    console.log("Execute API Response:", response);
-
-    // 检查响应中是否返回了sessionId，并记录
-    if (response.data && response.data.sessionId) {
-      console.log(`Execute响应中包含sessionId: ${response.data.sessionId}`);
-    } else {
-      console.warn(`⚠️ 警告: Execute响应中未找到sessionId! 响应数据:`, response.data);
-    }
-
-    return response.data;
-  } catch (error) {
-    console.error('API call to execute failed in function:', error);
-    // Re-throw the processed error object from the interceptor
-    throw error;
-  }
 };
 
-const getItems = async (page = 1, pageSize = 10) => {
-  try {
-    console.log(`获取首页列表... 页码: ${page}, 每页数量: ${pageSize}`);
-    const response = await api.get('/api/services', {
-      params: {
-        page,
-        page_size: pageSize
-      }
-    });
-    console.log("首页列表响应:", response.data);
-
-    // 返回分页数据结构
-    return {
-      items: response.data.items || [],
-      pagination: {
-        current_page: response.data.current_page || page,
-        total_pages: response.data.total_pages || 1,
-        total_items: response.data.total_items || response.data.items?.length || 0,
-        page_size: response.data.page_size || pageSize,
-        has_next: response.data.has_next || false,
-        has_prev: response.data.has_prev || false
-      }
-    };
-  } catch (error) {
-    console.error('获取首页列表失败:', error);
-    throw error;
-  }
+const getTools = async () => {
+    try {
+        console.log("获取工具列表...");
+        const response = await api.get('/api/v1/tools');
+        console.log("工具列表响应:", response.data);
+        return response.data.tools; // 直接返回工具数组
+    } catch (error) {
+        console.error('获取工具列表失败:', error);
+        throw error;
+    }
 };
 
 // 获取单个工具（服务）详情
 const getToolById = async (toolId) => {
   try {
     console.log(`获取工具ID: ${toolId} 的详情`);
-    const response = await api.get(`/v1/api/tools/${toolId}`);
+    const response = await api.get(`/api/v1/tools/${toolId}`);
     console.log("工具详情响应:", response.data);
     return response.data;
   } catch (error) {
@@ -418,7 +400,7 @@ const apiClientInstance = {
   refreshToken,
   interpret,
   execute,
-  getItems,
+  getTools,
   getToolById,
   // If there are specific developer tool functions that components might use via `apiClient.someFunc()`,
   // they could be added here too. For now, DeveloperConsolePage uses the generic get, put, delete.

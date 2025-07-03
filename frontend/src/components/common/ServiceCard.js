@@ -176,7 +176,7 @@ const ServiceCard = ({
   viewMode = 'grid'
 }) => {
   const navigate = useNavigate();
-
+  
   const handleClick = () => {
     if (onClick) {
       onClick(id);
@@ -188,18 +188,18 @@ const ServiceCard = ({
 
   if (viewMode === 'list') {
     return (
-      <ListCardContainer onClick={handleClick} data-testid="service-card">
+      <ListCardContainer onClick={handleClick}>
         <ListIconSection>
           {getServiceIcon(type)}
         </ListIconSection>
-
+        
         <ListContentSection>
           <ServiceTitle>{title}</ServiceTitle>
           <Description viewMode={viewMode}>{description}</Description>
-
+          
           <ListInfoSection>
             <div className="provider">提供者: {provider}</div>
-
+            
             {tags && tags.length > 0 && (
               <TagsContainer>
                 {tags.slice(0, 3).map((tag, index) => (
@@ -216,7 +216,7 @@ const ServiceCard = ({
             )}
           </ListInfoSection>
         </ListContentSection>
-
+        
         <ListActionSection>
           <RightOutline fontSize={20} />
         </ListActionSection>
@@ -226,7 +226,7 @@ const ServiceCard = ({
 
   // Grid 视图
   return (
-    <GridCard
+    <GridCard 
       title={
         <ServiceTitle>
           {getServiceIcon(type)}
@@ -234,10 +234,9 @@ const ServiceCard = ({
         </ServiceTitle>
       }
       onClick={handleClick}
-      data-testid="service-card"
     >
       <Description>{description}</Description>
-
+      
       <TagsContainer>
         {tags.map((tag, index) => (
           <Tag key={index} color="primary" fill="outline" size="small">
@@ -245,11 +244,11 @@ const ServiceCard = ({
           </Tag>
         ))}
       </TagsContainer>
-
+      
       <Footer>
         <span>提供者: {provider}</span>
-        <Button
-          size="mini"
+        <Button 
+          size="mini" 
           color="primary"
           fill="none"
         >
