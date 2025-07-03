@@ -88,12 +88,7 @@ const EmptyState = ({
   const finalDescription = description || defaultDescription;
 
   return (
-    <Container
-      fullPage={fullPage}
-      data-testid="empty-state-message"
-      role="region"
-      aria-label={`空状态: ${finalTitle}`}
-    >
+    <Container fullPage={fullPage}>
       <IconWrapper>{icon}</IconWrapper>
       <Title>{finalTitle}</Title>
       <Description>{finalDescription}</Description>

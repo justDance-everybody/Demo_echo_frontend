@@ -8,7 +8,7 @@
   align-items: center;
   justify-content: center;
   color: #F8F8F8;
-  z-index: 1000;
+  z-index: 50;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   transition: background-color 0.3s ease;
   padding: 0 20px;
@@ -101,12 +101,10 @@
     transform: scale(0.8);
     opacity: 0.5;
   }
-
   50% {
     transform: scale(1.2);
     opacity: 1;
   }
-
   100% {
     transform: scale(0.8);
     opacity: 0.5;
@@ -117,4 +115,4 @@
   .status-text {
     font-size: 14px;
   }
-}
+} 
