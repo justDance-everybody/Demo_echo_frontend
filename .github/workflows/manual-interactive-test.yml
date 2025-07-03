@@ -1,0 +1,111 @@
+# .github/workflows/manual-interactive-test.yml
+
+name: Manual Interactive Test
+
+# 1. 设置手动触发器 (workflow_dispatch)
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'The branch to test'
+        required: true
+        default: 'open_test' # 默认使用 open_test 分支
+        type: string
+
+jobs:
+  interactive-test:
+    name: Run Interactive Test and Cypress
+    runs-on: ubuntu-latest
+
+    # 如果后端需要数据库，可以保留 services 部分
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: testdb
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+      # 2. 检出您手动指定的分支
+      - name: Checkout specific branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      # --- 后端设置 ---
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install backend dependencies
+        run: pip install -r backend/requirements.txt
+      - name: Start backend server (in background)
+        run: uvicorn main:app --host 0.0.0.0 --port 8000 &
+        working-directory: ./backend
+        env:
+          DATABASE_URL: "mysql+pymysql://root:root@localhost:3306/testdb"
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }} # 确保已在仓库Secrets中配置
+
+      # --- 前端设置 ---
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: ./frontend
+
+      # 3. 以后台模式启动前端开发服务器
+      - name: Start frontend dev server (in background)
+        run: npm run dev & # 使用 dev 命令以支持热更新，注意后面的 '&'
+        working-directory: ./frontend
+
+      # 4. 使用 ngrok 创建一个临时的公共 URL
+      - name: Create public URL with ngrok
+        id: ngrok # 给这个步骤一个 ID，方便后续引用它的输出
+        uses: ngrok/ngrok-file-url-action@v1
+        with:
+          # 您的 cypress.config.js 中 baseUrl 指向 3000 端口
+          # 如果您的 Vite 开发服务器使用其他端口（如 5173），请修改这里
+          port: 3000
+          
+      # 5. 显示 URL 并暂停，等待您手动交互
+      - name: Display URL and wait for interaction
+        run: |
+          echo "✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅"
+          echo ""
+          echo "  >>>>> 您的远程交互URL已生成 <<<<<"
+          echo "  URL: ${{ steps.ngrok.outputs.url }}"
+          echo ""
+          echo "  您现在有 10 分钟的时间来访问此URL并进行手动交互。"
+          echo "  时间结束后，将自动开始运行 Cypress 测试。"
+          echo ""
+          echo "✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅"
+          sleep 600 # 暂停 600 秒 (10 分钟)，您可以根据需要调整时长
+
+      # 6. 暂停结束后，运行 Cypress 自动化测试
+      - name: Run Cypress E2E tests
+        uses: cypress-io/github-action@v6
+        with:
+          working-directory: ./frontend
+          command: npm run test:ci
+          # 测试依然指向 localhost，因为这是在运行器内部，速度最快最稳定
+          config: baseUrl=http://localhost:3000 
+
+      # 7. 上传测试报告
+      - name: Upload Cypress test artifacts
+        uses: actions/upload-artifact@v4
+        if: always() # 无论成功与否都上传报告
+        with:
+          name: interactive-cypress-report
+          path: frontend/cypress/reports/html
+          retention-days: 5
