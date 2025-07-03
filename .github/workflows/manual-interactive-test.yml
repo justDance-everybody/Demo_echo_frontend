@@ -72,7 +72,7 @@ jobs:
       # 4. 使用 ngrok 创建一个临时的公共 URL
       - name: Create public URL with ngrok
         id: ngrok # 给这个步骤一个 ID，方便后续引用它的输出
-        uses: ngrok/ngrok-file-url-action@v1
+        uses: - uses: ngrok/ngrok-action@v1
         with:
           # 您的 cypress.config.js 中 baseUrl 指向 3000 端口
           # 如果您的 Vite 开发服务器使用其他端口（如 5173），请修改这里
