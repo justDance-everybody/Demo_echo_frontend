@@ -43,6 +43,24 @@ describe('User Registration - 基于前端开发文档验收标准', () => {
     // 等待API响应
     cy.wait(3000);
 
+    // 调试：输出当前页面HTML
+    cy.get('body').then(($body) => {
+      const html = $body.html();
+      console.log('页面HTML包含注册成功吗?', html.includes('注册成功'));
+      console.log('页面HTML包含跳转吗?', html.includes('跳转'));
+      if ($body.find('[data-testid="register-success-message"]').length > 0) {
+        console.log('找到成功消息元素');
+      } else {
+        console.log('未找到成功消息元素');
+      }
+      
+      // 检查是否有错误消息
+      if ($body.find('[data-testid="register-error-message"]').length > 0) {
+        const errorText = $body.find('[data-testid="register-error-message"]').text();
+        console.log('发现错误消息:', errorText);
+      }
+    });
+
     // 验证注册成功指示器
     cy.get('body').then(($body) => {
       const successMsg = $body.find('[data-testid="register-success-message"]');

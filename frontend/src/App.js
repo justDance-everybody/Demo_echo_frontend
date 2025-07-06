@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import MainPage from './pages/MainPage/MainPage';
+import HomePage from './pages/user/HomePage';
 import AuthPage from './pages/AuthPage';
 import ServicesPage from './pages/ServicesPage';
 import ServiceDetailPage from './pages/ServiceDetailPage';
@@ -17,6 +18,7 @@ import UserCenter from './pages/user/UserCenter';
 import TestPage from './tests/TestPage';
 import DeveloperConsole from './pages/DeveloperConsolePage/DeveloperConsolePage';
 import DebugPage from './pages/DebugPage';
+import VoiceFlowTestPage from './pages/VoiceFlowTestPage';
 import './App.css';
 
 // 内部组件，用于根据路由显示/隐藏导航栏
@@ -32,11 +34,32 @@ function AppContent() {
       <div className="content-wrapper" aria-label="主要内容">
         <ErrorBoundary>
           <Routes>
-            <Route path="/" element={<MainPage />} />
+            <Route path="/" element={
+              <ProtectedRoute>
+                <MainPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/home" element={
+              <ProtectedRoute>
+                <HomePage />
+              </ProtectedRoute>
+            } />
             <Route path="/auth" element={<AuthPage />} />
-            <Route path="/services" element={<ServicesPage />} />
-            <Route path="/services/:id" element={<ServiceDetailPage />} />
-            <Route path="/settings" element={<Settings />} />
+            <Route path="/services" element={
+              <ProtectedRoute>
+                <ServicesPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/services/:id" element={
+              <ProtectedRoute>
+                <ServiceDetailPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/settings" element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            } />
             <Route path="/user" element={
               <ProtectedRoute>
                 <UserCenter />
@@ -58,6 +81,7 @@ function AppContent() {
               </ProtectedRoute>
             } />
             <Route path="/test" element={<TestPage />} />
+            <Route path="/voice-test" element={<VoiceFlowTestPage />} />
             <Route path="/debug" element={<DebugPage />} />
             <Route path="/404" element={<NotFoundPage />} />
             <Route path="*" element={<NotFoundPage />} />

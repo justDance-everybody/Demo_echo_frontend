@@ -54,9 +54,10 @@ describe('Services Page Functionality', () => {
       body: { items: mockTools },
     }).as('getServicesRequest');
 
+    cy.clearLocalStorageForTest();
+    cy.setupAuth('user');
     cy.visit('/services');
     cy.injectAxe();
-    cy.clearLocalStorageForTest();
 
     // 等待页面加载完成
     cy.get('[data-testid="service-list-container"]', { timeout: 10000 }).should('exist');

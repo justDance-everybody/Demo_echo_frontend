@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8" />
+    <title>JavaScript 测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .success {
+            color: green;
+            background-color: #dff0d8;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .error {
+            color: red;
+            background-color: #f2dede;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 JavaScript 测试页面</h1>
+    <div id="test-result">正在测试...</div>
+    
+    <script>
+        console.log('JavaScript 正在执行...');
+        try {
+            const testDiv = document.getElementById('test-result');
+            testDiv.innerHTML = '<div class="success">✅ JavaScript 正常工作！<br>当前时间: ' + new Date().toLocaleString() + '</div>';
+            console.log('测试成功！');
+        } catch (error) {
+            console.error('测试失败:', error);
+            document.getElementById('test-result').innerHTML = '<div class="error">❌ JavaScript 执行失败: ' + error.message + '</div>';
+        }
+    </script>
+</body>
+</html> 

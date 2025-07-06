@@ -1,9 +1,9 @@
 import React, { useState, useContext } from 'react';
 import styled from 'styled-components';
-import { Switch, Button } from 'antd';
+import { Switch, Button, Modal } from 'antd';
 import { AudioOutlined, BulbOutlined, BulbFilled } from '@ant-design/icons';
 import { ThemeContext } from '../theme/ThemeProvider';
-import VoiceDialog from './VoiceDialog';
+import VoiceInterface from './VoiceInterface';
 
 const HeaderContainer = styled.header`
   display: flex;
@@ -74,9 +74,19 @@ const Header = () => {
         </ThemeToggle>
       </Controls>
 
-      {voiceDialogOpen && (
-        <VoiceDialog onClose={closeVoiceDialog} />
-      )}
+      <Modal
+        title="语音助手"
+        open={voiceDialogOpen}
+        onCancel={closeVoiceDialog}
+        footer={null}
+        width={600}
+        destroyOnClose
+      >
+        <VoiceInterface
+          mode="simple"
+          showProgress={true}
+        />
+      </Modal>
     </HeaderContainer>
   );
 };

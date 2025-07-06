@@ -26,7 +26,6 @@ fs.writeFileSync(logFilePath, `组件测试开始运行: ${new Date().toISOStrin
 const componentDirectories = [
   'components/common/__tests__',
   'components/Layout/__tests__',
-  'components/VoiceRecorder/__tests__',
   'contexts/__tests__'
 ];
 

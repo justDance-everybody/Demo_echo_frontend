@@ -59,9 +59,13 @@ export const ThemeProvider = ({ children, overrideValue }) => {
   // 初始化状态 - 总是在组件顶层调用hooks
   const [isDarkMode, setIsDarkMode] = useState(() => {
     // 尝试从本地存储中恢复主题设置
+    try {
     if (typeof localStorage !== 'undefined') {
     const savedTheme = localStorage.getItem('theme');
     return savedTheme ? savedTheme === 'dark' : true;  // 默认使用深色主题
+      }
+    } catch (e) {
+      console.warn('localStorage access blocked:', e);
     }
     return true; // 默认深色主题
   });
@@ -75,15 +79,19 @@ export const ThemeProvider = ({ children, overrideValue }) => {
       }
       return {};
     } catch (e) {
-      console.error('Failed to parse custom theme from localStorage:', e);
+      console.warn('localStorage access blocked or parsing failed:', e);
       return {};
     }
   });
   
   // 当主题变化时保存到本地存储
   useEffect(() => {
+    try {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+      }
+    } catch (e) {
+      console.warn('localStorage write access blocked:', e);
     }
     
     // 更新文档根元素的数据属性，用于CSS变量
@@ -123,8 +131,12 @@ export const ThemeProvider = ({ children, overrideValue }) => {
       };
       
       // 保存到本地存储
+      try {
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem('customTheme', JSON.stringify(newCustomTheme));
+        }
+      } catch (e) {
+        console.warn('localStorage write access blocked:', e);
       }
       
       return newCustomTheme;

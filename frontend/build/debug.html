@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8" />
+    <title>Echo AI - 调试诊断页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .success {
+            color: #28a745;
+            background-color: #d4edda;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .warning {
+            color: #856404;
+            background-color: #fff3cd;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .info {
+            color: #0c5460;
+            background-color: #d1ecf1;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .test-results {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Echo AI - 调试诊断页面</h1>
+        <p>这个页面用来帮助诊断React应用为什么在你的浏览器中显示空白。</p>
+        
+        <div id="js-test" class="warning">正在测试JavaScript执行...</div>
+        
+        <div class="test-results">
+            <h3>🔍 诊断步骤</h3>
+            <button onclick="testMainPage()">1. 测试主页面加载</button>
+            <button onclick="testBundle()">2. 测试Bundle.js</button>
+            <button onclick="checkConsole()">3. 检查控制台错误</button>
+            <button onclick="clearCache()">4. 清除缓存指南</button>
+            <button onclick="forceVisibleMode()" style="background-color: #dc3545;">🚨 强制显示模式</button>
+            
+            <div id="test-output"></div>
+        </div>
+
+        <div class="info">
+            <h4>📋 请执行以下检查步骤：</h4>
+            <ol>
+                <li><strong>检查控制台错误</strong>：按F12打开开发者工具，点击Console标签，查看是否有红色错误</li>
+                <li><strong>检查网络</strong>：在开发者工具的Network标签中，刷新页面，确认bundle.js状态是200</li>
+                <li><strong>强制刷新</strong>：按Ctrl+F5 (Windows) 或 Cmd+Shift+R (Mac)</li>
+                <li><strong>清除缓存</strong>：在开发者工具Network标签勾选"Disable cache"</li>
+            </ol>
+        </div>
+
+        <div id="browser-info"></div>
+        <div id="network-info"></div>
+    </div>
+
+    <script>
+        // 测试JavaScript执行
+        document.addEventListener('DOMContentLoaded', function() {
+            const testDiv = document.getElementById('js-test');
+            testDiv.innerHTML = '<div class="success">✅ JavaScript 执行正常！时间: ' + new Date().toLocaleString() + '</div>';
+            
+            // 显示浏览器信息
+            displayBrowserInfo();
+        });
+
+        function displayBrowserInfo() {
+            const browserInfo = document.getElementById('browser-info');
+            const info = {
+                userAgent: navigator.userAgent,
+                cookieEnabled: navigator.cookieEnabled,
+                onLine: navigator.onLine,
+                language: navigator.language,
+                platform: navigator.platform,
+                javaEnabled: navigator.javaEnabled ? navigator.javaEnabled() : 'N/A',
+                doNotTrack: navigator.doNotTrack,
+                hardwareConcurrency: navigator.hardwareConcurrency,
+                maxTouchPoints: navigator.maxTouchPoints
+            };
+            
+            browserInfo.innerHTML = `
+                <div class="info">
+                    <h4>🌐 浏览器信息</h4>
+                    <pre>${JSON.stringify(info, null, 2)}</pre>
+                </div>
+            `;
+        }
+
+        function testMainPage() {
+            const output = document.getElementById('test-output');
+            output.innerHTML = '<div class="info">正在测试主页面...</div>';
+            
+            fetch('http://localhost:3000/')
+                .then(response => {
+                    if (response.ok) {
+                        return response.text();
+                    }
+                    throw new Error('HTTP ' + response.status + ': ' + response.statusText);
+                })
+                .then(html => {
+                    const hasRoot = html.includes('<div id="root">');
+                    const hasBundle = html.includes('bundle.js');
+                    
+                    if (hasRoot && hasBundle) {
+                        output.innerHTML = '<div class="success">✅ 主页面HTML结构正常</div>';
+                    } else {
+                        output.innerHTML = '<div class="error">❌ 主页面HTML结构异常</div>';
+                    }
+                })
+                .catch(error => {
+                    output.innerHTML = '<div class="error">❌ 主页面加载失败: ' + error.message + '</div>';
+                });
+        }
+
+        function testBundle() {
+            const output = document.getElementById('test-output');
+            output.innerHTML = '<div class="info">正在测试Bundle.js...</div>';
+            
+            fetch('http://localhost:3000/static/js/bundle.js')
+                .then(response => {
+                    if (response.ok) {
+                        output.innerHTML = '<div class="success">✅ Bundle.js 加载正常 (状态: ' + response.status + ')</div>';
+                    } else {
+                        throw new Error('HTTP ' + response.status + ': ' + response.statusText);
+                    }
+                })
+                .catch(error => {
+                    output.innerHTML = '<div class="error">❌ Bundle.js 加载失败: ' + error.message + '</div>';
+                });
+        }
+
+        function checkConsole() {
+            const output = document.getElementById('test-output');
+            output.innerHTML = `
+                <div class="warning">
+                    <h4>🔍 检查控制台步骤：</h4>
+                    <ol>
+                        <li>按 <code>F12</code> 打开开发者工具</li>
+                        <li>点击 <strong>Console</strong> 标签</li>
+                        <li>访问 <a href="http://localhost:3000" target="_blank">http://localhost:3000</a></li>
+                        <li>查看是否有红色错误信息</li>
+                        <li>将错误信息复制给AI助手</li>
+                    </ol>
+                </div>
+            `;
+        }
+
+        function clearCache() {
+            const output = document.getElementById('test-output');
+            output.innerHTML = `
+                <div class="info">
+                    <h4>🗑️ 清除缓存步骤：</h4>
+                    <p><strong>方法1 - 强制刷新：</strong></p>
+                    <ul>
+                        <li>Windows: <code>Ctrl + F5</code> 或 <code>Ctrl + Shift + R</code></li>
+                        <li>Mac: <code>Cmd + Shift + R</code></li>
+                    </ul>
+                    <p><strong>方法2 - 禁用缓存：</strong></p>
+                    <ol>
+                        <li>按F12打开开发者工具</li>
+                        <li>点击 <strong>Network</strong> 标签</li>
+                        <li>勾选 <strong>"Disable cache"</strong></li>
+                        <li>刷新页面</li>
+                    </ol>
+                    <p><strong>方法3 - 清除浏览器数据：</strong></p>
+                    <ul>
+                        <li>Chrome: Settings → Privacy and Security → Clear browsing data</li>
+                        <li>Firefox: History → Clear Recent History</li>
+                        <li>Safari: Develop → Empty Caches</li>
+                    </ul>
+                </div>
+            `;
+        }
+
+        function forceVisibleMode() {
+            const output = document.getElementById('test-output');
+            output.innerHTML = '<div class="info">正在强制显示模式...</div>';
+            
+            // 在主页面中注入强制显示CSS
+            try {
+                const newWindow = window.open('http://localhost:3000', '_blank');
+                if (newWindow) {
+                    newWindow.addEventListener('load', function() {
+                        const style = newWindow.document.createElement('style');
+                        style.textContent = `
+                            body, #root { 
+                                background-color: #1E1E2F !important; 
+                                color: #F8F8F8 !important; 
+                                min-height: 100vh !important;
+                            }
+                            * { 
+                                color: #F8F8F8 !important; 
+                            }
+                            button { 
+                                background-color: #4FD1C5 !important; 
+                                color: #1A202C !important; 
+                            }
+                        `;
+                        newWindow.document.head.appendChild(style);
+                        
+                        // 添加调试模式类
+                        newWindow.document.body.classList.add('debug-mode');
+                    });
+                    output.innerHTML = '<div class="success">✅ 已在新标签页中打开强制显示模式</div>';
+                } else {
+                    output.innerHTML = '<div class="error">❌ 无法打开新窗口，请检查弹窗拦截设置</div>';
+                }
+            } catch (error) {
+                output.innerHTML = '<div class="error">❌ 强制显示失败: ' + error.message + '</div>';
+            }
+        }
+    </script>
+</body>
+</html> 

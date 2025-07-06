@@ -8,6 +8,7 @@ import 'antd-mobile/bundle/style.css';
 import './styles/tokens.css'; // 确保CSS变量在早期加载
 import './index.css';
 import './styles/MobileOptimization.css'; // 导入移动端优化样式
+import './debug.css'; // 临时调试CSS
 import App from './App';
 import ThemeProvider from './theme/ThemeProvider';
 import GlobalStyles from './styles/GlobalStyles';

@@ -15,11 +15,13 @@ describe('Theme Functionality', () => {
   };
 
   beforeEach(() => {
+    // 清理localStorage，确保测试环境纯净
+    cy.clearLocalStorageForTest();
+    // 设置认证状态
+    cy.setupAuth('user');
     // 访问设置页面
     cy.visit('/settings');
     cy.injectAxe(); // Inject axe-core for accessibility testing
-    // 清理localStorage，确保测试环境纯净
-    cy.clearLocalStorageForTest();
     cy.saveLocalStorageSnapshot('before-each-theme-test'); // 保存清理后的状态快照
 
     // 确保在外观和主题标签页

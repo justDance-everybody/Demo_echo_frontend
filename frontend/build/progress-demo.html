@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>四阶段进度条演示</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .demo-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .info-box h3 {
+            margin-top: 0;
+            color: #1976d2;
+        }
+
+        .info-box ul {
+            margin-bottom: 0;
+        }
+
+        .info-box li {
+            margin-bottom: 8px;
+        }
+
+        .test-button {
+            display: block;
+            width: 100%;
+            max-width: 400px;
+            margin: 20px auto;
+            padding: 15px 30px;
+            background: #4fd1c5;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .test-button:hover {
+            background: #38b2ac;
+            transform: translateY(-2px);
+        }
+
+        .test-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status-display {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 8px;
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+        }
+
+        .status-listening {
+            background: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+
+        .status-thinking {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+
+        .status-executing {
+            background: #cce7ff;
+            border-color: #007bff;
+            color: #004085;
+        }
+
+        .status-completed {
+            background: #d1ecf1;
+            border-color: #17a2b8;
+            color: #0c5460;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="demo-container">
+        <h1>🎤 四阶段进度条演示</h1>
+
+        <div class="info-box">
+            <h3>📋 功能说明</h3>
+            <p>录音完成后，系统将严格按照以下四个阶段运行进度条：</p>
+            <ul>
+                <li><strong>🎤 识别中</strong> - 处理语音识别结果</li>
+                <li><strong>🧠 理解中</strong> - 分析用户意图</li>
+                <li><strong>⚙️ 执行中</strong> - 执行相应操作</li>
+                <li><strong>✅ 完成</strong> - 操作完成，输出结果</li>
+            </ul>
+        </div>
+
+        <div id="statusDisplay" class="status-display">
+            点击下方按钮开始演示
+        </div>
+
+        <button id="startDemo" class="test-button">
+            🚀 开始四阶段演示
+        </button>
+
+        <div class="info-box">
+            <h3>🔧 技术实现</h3>
+            <p>在实际应用中，这个流程在 <code>MainPage.js</code> 的 <code>runProgressStages</code> 函数中实现：</p>
+            <ul>
+                <li>阶段1: 显示"识别中"状态 (1秒)</li>
+                <li>阶段2: 调用API进行意图理解</li>
+                <li>阶段3: 模拟执行过程 (1.5秒)</li>
+                <li>阶段4: 显示"完成"状态 (0.8秒)</li>
+                <li>最后: 根据结果显示对话框或播放响应</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const statusDisplay = document.getElementById('statusDisplay');
+        const startButton = document.getElementById('startDemo');
+
+        const stages = [
+            { name: 'listening', label: '🎤 识别中', description: '正在处理语音识别结果...', duration: 1000 },
+            { name: 'thinking', label: '🧠 理解中', description: '正在分析用户意图...', duration: 2000 },
+            { name: 'executing', label: '⚙️ 执行中', description: '正在执行相应操作...', duration: 1500 },
+            { name: 'completed', label: '✅ 完成', description: '操作完成，准备输出结果！', duration: 800 }
+        ];
+
+        async function runDemo() {
+            startButton.disabled = true;
+            startButton.textContent = '演示进行中...';
+
+            for (let i = 0; i < stages.length; i++) {
+                const stage = stages[i];
+
+                // 更新显示
+                statusDisplay.className = `status-display status-${stage.name}`;
+                statusDisplay.innerHTML = `
+                    <div>${stage.label}</div>
+                    <div style="font-size: 14px; font-weight: normal; margin-top: 5px;">
+                        ${stage.description}
+                    </div>
+                `;
+
+                // 等待指定时间
+                await new Promise(resolve => setTimeout(resolve, stage.duration));
+            }
+
+            // 演示完成
+            statusDisplay.className = 'status-display';
+            statusDisplay.innerHTML = `
+                <div style="color: #28a745;">🎉 四阶段演示完成！</div>
+                <div style="font-size: 14px; font-weight: normal; margin-top: 5px;">
+                    现在可以在主应用中体验完整的语音交互流程
+                </div>
+            `;
+
+            startButton.disabled = false;
+            startButton.textContent = '🔄 重新演示';
+        }
+
+        startButton.addEventListener('click', runDemo);
+
+        // 页面加载完成后的提示
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('🎯 四阶段进度条演示页面已加载');
+            console.log('📍 主应用地址: http://localhost:3000');
+            console.log('🔧 在主应用中使用语音功能即可看到真实的四阶段进度条');
+        });
+    </script>
+</body>
+
+</html>

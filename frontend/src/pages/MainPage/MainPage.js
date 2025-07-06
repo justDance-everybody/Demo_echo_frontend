@@ -1,13 +1,13 @@
 // frontend/src/pages/MainPage/MainPage.js
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import VoiceRecorder from '../../components/VoiceRecorder/VoiceRecorder';
+
 import StatusBar from '../../components/StatusBar/StatusBar';
 import ToolsList from '../../components/ToolsList';
 import ProgressBar from '../../components/ProgressBar/ProgressBar';
 import apiClient from '../../services/apiClient';
 import useTTS from '../../hooks/useTTS';
 import useVoice from '../../hooks/useVoice';
-import ConfirmationModal from '../../components/ConfirmationModal';
+import VoiceInterface from '../../components/VoiceInterface';
 import ResultDisplay from '../../components/ResultDisplay';
 import { motion, AnimatePresence } from 'framer-motion';
 import './MainPage.css';
@@ -359,7 +359,7 @@ const MainPage = () => {
     }, [cancelTTS]);
 
     const handleVoiceError = useCallback((error) => {
-        console.error('VoiceRecorder Error:', error);
+        console.error('VoiceInterface Error:', error);
         setStatus('error');
         setLastResponse({ status: 'error', message: `语音识别错误: ${error}` });
 
@@ -525,11 +525,12 @@ const MainPage = () => {
                     )}
 
                     {/* 语音输入按钮 */}
-                    <VoiceRecorder
+                    <VoiceInterface
+                        mode="simple"
                         onResult={handleVoiceResult}
                         onError={handleVoiceError}
-                        setStatus={setStatus}
-                        disabled={!['idle', 'listening'].includes(status)} // 允许在idle和listening状态下使用录音按钮
+                        className="main-page-voice-interface"
+                        testMode={window.Cypress || process.env.NODE_ENV === 'test'}
                     />
                 </div>
             </div>
@@ -537,20 +538,18 @@ const MainPage = () => {
             {/* 确认对话框 */}
             <AnimatePresence>
                 {isConfirmModalOpen && (
-                    <ConfirmationModal
-                        isOpen={isConfirmModalOpen}
-                        confirmText={confirmText}
-                        onConfirm={handleUserConfirm}
-                        onRetry={handleUserRetry}
-                        onCancel={handleUserCancel}
-                        isListening={isListening}
-                        isTTSSpeaking={isSpeaking}
-                        useVoiceConfirmation={true}
-                        startSTTListening={startListening}
-                        stopSTTListening={stopListening}
-                        onTTSCompleted={handleTTSCompleted}
-                        voiceTranscript={voiceTranscript}
-                    />
+                    <div className="confirmation-overlay">
+                        <div className="confirmation-modal">
+                            <VoiceInterface
+                                mode="dialog"
+                                showProgress={false}
+                                onResult={handleUserConfirm}
+                                onError={handleUserCancel}
+                                autoStart={true}
+                                testMode={window.Cypress || process.env.NODE_ENV === 'test'}
+                            />
+                        </div>
+                    </div>
                 )}
             </AnimatePresence>
         </motion.div>

@@ -105,8 +105,8 @@ describe('MainPage 组件测试', () => {
     // 模拟语音识别结果
     const mockVoiceResult = jest.fn();
 
-    // 手动触发 VoiceRecorder 的 onResult 逻辑
-    const component = screen.getByTestId('voice-recorder');
+    // 手动触发 VoiceInterface 的 onResult 逻辑
+    const component = screen.getByTestId('voice-interface');
     component.onResult = mockVoiceResult;
 
     // 模拟点击语音按钮

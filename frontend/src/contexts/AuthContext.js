@@ -19,20 +19,38 @@ export const AuthContext = createContext({
 // 认证提供者组件
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [token, setToken] = useState(() => {
+    try {
+      return localStorage.getItem('token');
+    } catch (e) {
+      console.warn('localStorage access blocked:', e);
+      return null;
+    }
+  });
   const [isAuthenticated, setIsAuthenticated] = useState(!!token);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [role, setRole] = useState(localStorage.getItem('userRole') || 'user');
+  const [role, setRole] = useState(() => {
+    try {
+      return localStorage.getItem('userRole') || 'user';
+    } catch (e) {
+      console.warn('localStorage access blocked:', e);
+      return 'user';
+    }
+  });
 
   // 清除错误
   const clearError = () => setError(null);
 
   // 设置认证状态
   const setAuth = (userData, authToken, userRole) => {
+    try {
     localStorage.setItem('token', authToken);
     if (userRole) {
       localStorage.setItem('userRole', userRole);
+      }
+    } catch (e) {
+      console.warn('localStorage write access blocked:', e);
     }
     setToken(authToken);
     setUser(userData);
@@ -44,8 +62,12 @@ export const AuthProvider = ({ children }) => {
 
   // 清除认证状态
   const clearAuth = () => {
+    try {
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
+    } catch (e) {
+      console.warn('localStorage remove access blocked:', e);
+    }
     setToken(null);
     setUser(null);
     setRole('user');

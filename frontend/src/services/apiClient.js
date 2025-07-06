@@ -6,9 +6,13 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
+    try {
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (e) {
+      console.warn('localStorage access blocked in request interceptor:', e);
     }
     return config;
   },
@@ -30,7 +34,11 @@ api.interceptors.response.use(
       const { status, data } = error.response;
       console.error(`API Error: Status ${status}`, data);
       if (status === 401) {
+        try {
         localStorage.removeItem('token');
+        } catch (e) {
+          console.warn('localStorage access blocked in response interceptor:', e);
+        }
         errorMsg = '身份验证失败，请重新登录';
         // Consider redirecting: window.location.href = '/login'; 
       } else if (data?.detail) { // FastAPI validation errors often in 'detail'
