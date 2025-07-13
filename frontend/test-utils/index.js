@@ -29,14 +29,14 @@ class TestUtils {
     const filename = `voice-test-logs-${new Date().toISOString().replace(/:/g, '-')}.json`;
     return this.logger.downloadLogs(filename);
   }
-  
+
   // 手动测试语音输入
   testSpeech(text) {
     if (!text) return false;
     
     this.logger.info('TestUtils', '模拟语音输入', { text });
     return this.mockSpeech.speak(text);
-  }
+        }
   
   // 模拟用户确认
   speakConfirmation() {

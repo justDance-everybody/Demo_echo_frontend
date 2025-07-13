@@ -11,7 +11,7 @@ import VoiceInterface from '../../components/VoiceInterface';
 import ResultDisplay from '../../components/ResultDisplay';
 import { motion, AnimatePresence } from 'framer-motion';
 import './MainPage.css';
-import useIntent from '../../hooks/useIntent';
+// import useIntent from '../../hooks/useIntent';
 
 console.log('Test persistence');
 
@@ -21,12 +21,12 @@ const MainPage = () => {
     const [lastResponse, setLastResponse] = useState(null);
     const sessionIdRef = useRef(null);
     const { speak, cancel: cancelTTS, isSpeaking } = useTTS();
-    const { startListening, transcript: voiceTranscript, isListening, error: voiceError, reset: resetVoice, stopListening } = useVoice();
-    const { classifyIntent } = useIntent();
+    const { reset: resetVoice } = useVoice();
+    // const { classifyIntent } = useIntent();
 
     const [pendingAction, setPendingAction] = useState(null);
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-    const [confirmText, setConfirmText] = useState('');
+    // const [confirmText, setConfirmText] = useState('');
     const [resultData, setResultData] = useState(null);
 
     // 侧边栏状态
@@ -62,13 +62,14 @@ const MainPage = () => {
     const runProgressStages = useCallback(async (transcript, currentSessionId) => {
         console.log(`[ProgressBar] 开始四阶段进度流程`);
 
-        // 阶段1: 识别中 (listening) - 已经完成，显示1秒
+        // 阶段1: 识别中 (listening) - 延长显示时间让用户看清
         setStatus('listening');
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 2500));
 
-        // 阶段2: 理解中 (thinking)
+        // 阶段2: 理解中 (thinking) - 增加显示时间
         console.log(`[ProgressBar] 进入理解阶段`);
         setStatus('thinking');
+        await new Promise(resolve => setTimeout(resolve, 1500)); // 新增：确保用户能看到理解阶段
 
         try {
             const result = await apiClient.interpret(transcript, currentSessionId, 1);
@@ -84,19 +85,19 @@ const MainPage = () => {
             console.log(`[ProgressBar] 进入执行阶段`);
             setStatus('executing');
 
-            // 模拟执行时间，让用户看到执行阶段
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            // 延长执行时间，让用户清楚看到执行阶段
+            await new Promise(resolve => setTimeout(resolve, 2500));
 
             // 处理API结果
             if (result.tool_calls && result.tool_calls.length > 0) {
                 console.log(`[Session: ${result.sessionId || currentSessionId}] Tool call required. Pending action set.`);
                 setPendingAction(result);
-                const textToConfirm = result.confirm_text || result.confirmText || '您确定要执行此操作吗？';
-                setConfirmText(textToConfirm);
+                // const textToConfirm = result.confirm_text || result.confirmText || '您确定要执行此操作吗？';
+                // setConfirmText(textToConfirm);
 
-                // 阶段4: 完成 (completed) - 短暂显示
+                // 阶段4: 完成 (completed) - 延长显示让用户看清
                 setStatus('completed');
-                await new Promise(resolve => setTimeout(resolve, 800));
+                await new Promise(resolve => setTimeout(resolve, 2000));
 
                 // 然后显示确认对话框
                 setIsConfirmModalOpen(true);
@@ -107,9 +108,9 @@ const MainPage = () => {
             } else if (result.action === 'respond' && result.content) {
                 console.log(`[Session: ${result.sessionId || currentSessionId}] Direct response received.`);
 
-                // 阶段4: 完成 (completed)
+                // 阶段4: 完成 (completed) - 延长显示
                 setStatus('completed');
-                await new Promise(resolve => setTimeout(resolve, 800));
+                await new Promise(resolve => setTimeout(resolve, 2000));
 
                 setLastResponse({ status: 'info', message: result.content });
                 setStatus('speaking');
@@ -120,11 +121,11 @@ const MainPage = () => {
                 if (textToConfirm) {
                     console.log(`[Session: ${result.sessionId || currentSessionId}] Confirmation text only received.`);
                     setPendingAction(result);
-                    setConfirmText(textToConfirm);
+                    // setConfirmText(textToConfirm);
 
-                    // 阶段4: 完成 (completed)
+                    // 阶段4: 完成 (completed) - 延长显示让用户看清
                     setStatus('completed');
-                    await new Promise(resolve => setTimeout(resolve, 800));
+                    await new Promise(resolve => setTimeout(resolve, 2000));
 
                     setIsConfirmModalOpen(true);
                     setStatus('idle');
@@ -133,9 +134,9 @@ const MainPage = () => {
                 } else {
                     console.log(`[Session: ${result.sessionId || currentSessionId}] Response format detection:`, result);
 
-                    // 阶段4: 完成 (completed)
+                    // 阶段4: 完成 (completed) - 延长显示
                     setStatus('completed');
-                    await new Promise(resolve => setTimeout(resolve, 800));
+                    await new Promise(resolve => setTimeout(resolve, 2000));
 
                     const message = JSON.stringify(result);
                     setLastResponse({ status: 'info', message: `收到未知格式的响应: ${message}` });
@@ -161,7 +162,7 @@ const MainPage = () => {
             // 错误后5秒自动重置
             resetTimerRef.current = setTimeout(resetUIState, 5000);
         }
-    }, [speak, resetUIState, startListening, isListening, stopListening]);
+    }, [speak, resetUIState]);
 
     const handleVoiceResult = useCallback(async (transcript) => {
         // 清除任何现有的重置计时器
@@ -287,9 +288,9 @@ const MainPage = () => {
         if (isSpeaking) {
             cancelTTS();
         }
-        if (isListening) {
-            // stopListening(); // useVoice Hook 的 onresult 后会自动停止
-        }
+        // if (isListening) {
+        //     // stopListening(); // useVoice Hook 的 onresult 后会自动停止
+        // }
 
         // 处理用户确认
         setStatus('executing');
@@ -322,17 +323,17 @@ const MainPage = () => {
 
         // 执行工具调用
         executeToolAndHandleResult(toolId, params, currentSessionId, userId);
-    }, [isConfirming, pendingAction, speak, cancelTTS, resetUIState, isSpeaking, isListening, executeToolAndHandleResult]);
+    }, [isConfirming, pendingAction, cancelTTS, isSpeaking, executeToolAndHandleResult]);
 
-    const handleUserRetry = useCallback(() => {
-        cancelTTS();
-        setIsConfirmModalOpen(false);
-        setIsConfirming(false); // 重置确认状态锁
-        console.log('User chose to retry.');
-        setStatus('idle');
-        setLastResponse(null);
-        setPendingAction(null);
-    }, [cancelTTS]);
+    // const handleUserRetry = useCallback(() => {
+    //     cancelTTS();
+    //     setIsConfirmModalOpen(false);
+    //     setIsConfirming(false); // 重置确认状态锁
+    //     console.log('User chose to retry.');
+    //     setStatus('idle');
+    //     setLastResponse(null);
+    //     setPendingAction(null);
+    // }, [cancelTTS]);
 
     const handleUserCancel = useCallback(() => {
         console.log(`[Session: ${sessionIdRef.current}] 用户取消了操作`);
@@ -357,6 +358,19 @@ const MainPage = () => {
             }
         };
     }, [cancelTTS]);
+
+    // 处理语音开始监听 - 让用户立即看到进度条
+    const handleVoiceStart = useCallback(() => {
+        console.log('语音交互开始，显示进度条');
+        setStatus('listening');
+        setLastResponse(null);
+        setResultData(null);
+        // 清除任何现有的重置计时器
+        if (resetTimerRef.current) {
+            clearTimeout(resetTimerRef.current);
+            resetTimerRef.current = null;
+        }
+    }, []);
 
     const handleVoiceError = useCallback((error) => {
         console.error('VoiceInterface Error:', error);
@@ -395,10 +409,10 @@ const MainPage = () => {
     // 注意：语音确认处理已经移动到ConfirmationModal组件中，避免重复处理
 
     // 添加TTS完成回调函数
-    const handleTTSCompleted = useCallback(() => {
-        console.log("MainPage: ConfirmationModal TTS播报完成，准备监听用户确认");
-        setStatus('listening_confirm');
-    }, []);
+    // const handleTTSCompleted = useCallback(() => {
+    //     console.log("MainPage: ConfirmationModal TTS播报完成，准备监听用户确认");
+    //     setStatus('listening_confirm');
+    // }, []);
 
     // UI Rendering
     return (
@@ -411,7 +425,7 @@ const MainPage = () => {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
         >
-            <StatusBar currentStatus={status} lastTranscript={lastTranscript} lastResponse={lastResponse} />
+            {/* <StatusBar currentStatus={status} lastTranscript={lastTranscript} lastResponse={lastResponse} /> */}
 
             {/* 进度条 */}
             <AnimatePresence>
@@ -527,8 +541,10 @@ const MainPage = () => {
                     {/* 语音输入按钮 */}
                     <VoiceInterface
                         mode="simple"
+                        showProgress={false}
                         onResult={handleVoiceResult}
                         onError={handleVoiceError}
+                        onVoiceStart={handleVoiceStart}
                         className="main-page-voice-interface"
                         testMode={window.Cypress || process.env.NODE_ENV === 'test'}
                     />
@@ -545,9 +561,10 @@ const MainPage = () => {
                                 showProgress={false}
                                 onResult={handleUserConfirm}
                                 onError={handleUserCancel}
+                                onVoiceStart={handleVoiceStart}
                                 autoStart={true}
                                 testMode={window.Cypress || process.env.NODE_ENV === 'test'}
-                            />
+                    />
                         </div>
                     </div>
                 )}

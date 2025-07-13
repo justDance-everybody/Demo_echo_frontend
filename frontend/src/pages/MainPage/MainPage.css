@@ -141,10 +141,13 @@
   position: relative;
 }
 
-/* 主页进度条样式 */
+/* 主页进度条样式 - 增强视觉效果 */
 .main-page-progress {
   margin: 16px auto 20px;
   max-width: 500px;
+  position: relative;
+  z-index: 10;
+  /* 确保进度条在最前层显示 */
 }
 
 /* 消息容器 */

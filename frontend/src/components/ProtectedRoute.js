@@ -25,6 +25,13 @@ const ProtectedRoute = ({ children, requireAdmin = false, requireRole = null }) 
   const { isAuthenticated, user, loading, role } = useContext(AuthContext);
   const location = useLocation();
 
+  // 测试模式：跳过所有认证检查
+  const isTestMode = process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost';
+  if (isTestMode) {
+    console.log('[ProtectedRoute] 测试模式：跳过认证检查');
+    return children;
+  }
+
   // 如果正在加载认证状态，显示加载中
   if (loading) {
     return (

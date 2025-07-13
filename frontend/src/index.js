@@ -8,7 +8,6 @@ import 'antd-mobile/bundle/style.css';
 import './styles/tokens.css'; // 确保CSS变量在早期加载
 import './index.css';
 import './styles/MobileOptimization.css'; // 导入移动端优化样式
-import './debug.css'; // 临时调试CSS
 import App from './App';
 import ThemeProvider from './theme/ThemeProvider';
 import GlobalStyles from './styles/GlobalStyles';
@@ -21,9 +20,11 @@ async function startApp() {
     REACT_APP_USE_MOCKS: process.env.REACT_APP_USE_MOCKS
   });
 
-  // 强制启用 MSW 来支持 Cypress 测试
-  if (process.env.NODE_ENV === 'development' || window.Cypress) {
-    console.log('Starting MSW for mocking API calls...');
+  // 根据环境变量决定是否启用 MSW
+  const shouldUseMSW = process.env.REACT_APP_USE_MOCKS === 'true' || window.Cypress;
+  
+  if (shouldUseMSW && process.env.NODE_ENV === 'development') {
+    console.log('🎭 启动MSW Mock服务...');
     try {
       const { worker } = await import('./mocks/browser');
       console.log('MSW worker imported successfully');
@@ -34,20 +35,22 @@ async function startApp() {
           url: '/mockServiceWorker.js'
         }
       });
-      console.log('MSW worker started successfully.');
+      console.log('✅ MSW Mock服务启动成功');
 
       // 添加一个标记表示MSW已启动
       window.__MSW_ENABLED__ = true;
     } catch (err) {
-      console.error('Failed to start MSW worker:', err);
+      console.error('❌ MSW启动失败:', err);
       console.error('Error details:', err.message, err.stack);
     }
   } else {
-    console.log('MSW not started:', {
+    console.log('🌐 跳过MSW启动，将使用真实后端:', {
       isDevelopment: process.env.NODE_ENV === 'development',
       useMocks: process.env.REACT_APP_USE_MOCKS === 'true',
-      cypress: !!window.Cypress
+      cypress: !!window.Cypress,
+      shouldUseMSW
     });
+    window.__MSW_ENABLED__ = false;
   }
 
   // 渲染应用

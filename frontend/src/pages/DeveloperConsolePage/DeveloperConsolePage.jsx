@@ -74,17 +74,17 @@ const DeleteButton = styled.button`
   &:hover { background-color: #e05252; }
 `;
 
-const AddToolButton = styled.button`
-  background-color: var(--color-accent, #2c5282);
-  color: white;
-  padding: 0.8rem 1.5rem;
-  font-size: 1rem;
-  margin-bottom: 1.5rem;
-  border: none;
-  border-radius: var(--radius-md, 6px);
-  cursor: pointer;
-  &:hover { background-color: #224066; }
-`;
+// const AddToolButton = styled.button`
+//   background-color: var(--color-accent, #2c5282);
+//   color: white;
+//   padding: 0.8rem 1.5rem;
+//   font-size: 1rem;
+//   margin-bottom: 1.5rem;
+//   border: none;
+//   border-radius: var(--radius-md, 6px);
+//   cursor: pointer;
+//   &:hover { background-color: #224066; }
+// `;
 
 
 const DeveloperConsolePage = () => {
@@ -120,7 +120,7 @@ const DeveloperConsolePage = () => {
   const handleToggleStatus = async (toolId, currentStatus) => {
     const newStatus = currentStatus === 'enabled' ? 'disabled' : 'enabled';
     try {
-      const response = await apiClient.put(`/api/dev/tools/${toolId}`, { status: newStatus });
+      await apiClient.put(`/api/dev/tools/${toolId}`, { status: newStatus });
       setTools(prevTools =>
         prevTools.map(tool => tool.tool_id === toolId ? { ...tool, status: newStatus } : tool)
       );

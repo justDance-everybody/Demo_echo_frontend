@@ -15,6 +15,8 @@ import useTTS from '../hooks/useTTS';
 import useIntent from '../hooks/useIntent';
 import apiClient from '../services/apiClient';
 import { v4 as uuidv4 } from 'uuid';
+import MicrophonePermissionDialog from './MicrophonePermissionDialog';
+import { isMicrophoneSupported, isSpeechRecognitionSupported } from '../utils/microphonePermission';
 
 // 简化的状态机 - 只有4个核心状态
 const STATES = {
@@ -100,6 +102,7 @@ const TranscriptText = styled.div`
 const VoiceInterface = ({ 
   onResult,
   onError,
+  onVoiceStart, // 新增：语音开始回调
   mode = 'full', // 'full' | 'simple' | 'dialog'
   autoStart = false,
   showProgress = true,
@@ -118,6 +121,8 @@ const VoiceInterface = ({
   const [actionData, setActionData] = useState(null);
   const [processingStep, setProcessingStep] = useState(''); // 处理步骤提示
   const [testListening, setTestListening] = useState(false); // 测试模式下的listening状态
+  const [showPermissionDialog, setShowPermissionDialog] = useState(false); // 权限对话框状态
+  const [hasPermission, setHasPermission] = useState(false); // 权限状态
   
   // Hooks
   const { 
@@ -129,77 +134,122 @@ const VoiceInterface = ({
     reset: resetVoice
   } = useVoice();
   
-  const { speak, cancel: cancelTTS, isSpeaking } = useTTS();
+  const { speak, cancel: cancelTTS } = useTTS();
   const { classifyIntent } = useIntent();
   
   // Refs
   const processingRef = useRef(false);
   const confirmationTimeoutRef = useRef(null);
   
-  // 获取当前状态的进度和文本
-  const getStateInfo = () => {
-    const effectiveListening = testMode ? testListening : isListening;
-    
-    switch (currentState) {
-      case STATES.IDLE:
-        return { progress: 0, text: '准备就绪，点击开始语音对话' };
-      case STATES.PROCESSING:
-        if (effectiveListening) return { progress: 25, text: '正在聆听您的指令...' };
-        if (processingStep === 'interpreting') return { progress: 50, text: '正在理解您的需求...' };
-        if (processingStep === 'executing') return { progress: 75, text: '正在执行操作...' };
-        return { progress: 30, text: '正在处理中...' };
-      case STATES.CONFIRMING:
-        return { progress: 60, text: '请确认是否执行此操作' };
-      case STATES.ERROR:
-        return { progress: 0, text: '出现错误，请重试' };
-      default:
-        return { progress: 0, text: '' };
-    }
-  };
+  // 格式化结果用于语音播报
+  const formatResultForSpeech = useCallback((data) => {
+    if (!data) return '操作完成';
+    if (typeof data === 'string') return data;
+    if (data.tts_message) return data.tts_message;
+    if (data.message) return data.message;
+    if (data.content) return data.content;
+    if (data.result) return data.result;
+    return '操作已完成';
+  }, []);
   
-  // 开始语音交互
-  const startVoiceInteraction = useCallback(async () => {
-    if (processingRef.current) return;
-    
+  // 播放结果
+  const speakResult = useCallback(async (text) => {
+    return new Promise((resolve) => {
+      speak(text, 'zh-CN', 1, 1, () => {
+        resolve();
+      });
+    });
+  }, [speak]);
+  
+  // 重置会话
+  const resetSession = useCallback(() => {
+    setCurrentState(STATES.IDLE);
+    setError(null);
+    setUserInput('');
+    setConfirmText('');
+    setResultData(null);
+    setActionData(null);
+    setProcessingStep('');
+    cancelTTS();
+    stopListening();
+    resetVoice();
+    clearTimeout(confirmationTimeoutRef.current);
+    processingRef.current = false;
+  }, [cancelTTS, stopListening, resetVoice]);
+  
+  // 开始监听用户确认
+  const startListeningForConfirmation = useCallback(async () => {
     try {
-      // 重置状态
-      setError(null);
-      setUserInput('');
-      setConfirmText('');
-      setResultData(null);
-      setProcessingStep('');
       resetVoice();
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      await startListening();
       
-      // 设置为处理状态
-      setCurrentState(STATES.PROCESSING);
-      
-      if (testMode) {
-        // 测试模式：直接模拟语音识别成功
-        console.log('[VoiceInterface] 测试模式启动，设置listening状态');
-        setTestListening(true);
-      } else {
-        // 正常模式：启动真实的语音识别
-        await startListening();
-      }
+      // 设置超时
+      confirmationTimeoutRef.current = setTimeout(() => {
+        stopListening();
+        setError('确认超时，请重试');
+        setCurrentState(STATES.ERROR);
+      }, 15000);
     } catch (err) {
-      console.error('启动语音交互失败:', err);
-      setError('启动语音识别失败，请重试');
+      console.error('启动确认监听失败:', err);
+      setError('启动语音确认失败');
       setCurrentState(STATES.ERROR);
     }
-  }, [startListening, resetVoice, testMode]);
+  }, [startListening, stopListening, resetVoice]);
   
-  // 处理语音识别结果
-  useEffect(() => {
-    const effectiveListening = testMode ? testListening : isListening;
-    const effectiveTranscript = testMode ? userInput : transcript;
+  // 播放确认文本并等待用户确认
+  const speakConfirmation = useCallback(async (text) => {
+    return new Promise((resolve) => {
+      speak(text, 'zh-CN', 1, 1, () => {
+        // TTS播放完成后，开始等待用户确认
+        startListeningForConfirmation();
+        resolve();
+      });
+    });
+  }, [speak, startListeningForConfirmation]);
+  
+  // 执行操作
+  const executeAction = useCallback(async () => {
+    if (!actionData) return;
     
-    if (!effectiveListening && effectiveTranscript && effectiveTranscript.trim() && currentState === STATES.PROCESSING) {
-      if (!testMode) {
-        setUserInput(effectiveTranscript);
+    try {
+      setProcessingStep('executing');
+      setCurrentState(STATES.PROCESSING);
+      
+      console.log('正在执行操作:', actionData);
+      const result = await apiClient.execute(
+        actionData.toolId || actionData.action, 
+        actionData.params, 
+        sessionId, 
+        1
+      );
+      
+      setResultData(result);
+      
+      // 播放执行结果
+      const resultText = formatResultForSpeech(result);
+      await speakResult(resultText);
+      
+      setCurrentState(STATES.IDLE);
+      
+      if (onResult) {
+        onResult(result);
       }
-      processUserInput(effectiveTranscript);
+    } catch (err) {
+      console.error('执行操作失败:', err);
+      setError(err.message || '执行失败，请重试');
+      setCurrentState(STATES.ERROR);
     }
-  }, [isListening, testListening, transcript, userInput, currentState, testMode]);
+  }, [actionData, sessionId, onResult, speakResult, formatResultForSpeech]);
+  
+  // 处理取消
+  const handleCancel = useCallback(() => {
+    setCurrentState(STATES.IDLE);
+    speak('操作已取消');
+    resetSession();
+  }, [speak, resetSession]);
+  
+  // 注意：handleRetry已被handleRetryUpdated替代，此处移除未使用的变量
   
   // 处理用户输入
   const processUserInput = useCallback(async (text) => {
@@ -243,38 +293,98 @@ const VoiceInterface = ({
     } finally {
       processingRef.current = false;
     }
-  }, [sessionId]);
+  }, [sessionId, speakConfirmation, speakResult]);
   
-  // 播放确认文本并等待用户确认
-  const speakConfirmation = useCallback(async (text) => {
-    return new Promise((resolve) => {
-      speak(text, 'zh-CN', 1, 1, () => {
-        // TTS播放完成后，开始等待用户确认
-        startListeningForConfirmation();
-        resolve();
-      });
-    });
-  }, [speak]);
+  // 获取当前状态的进度和文本
+  const getStateInfo = () => {
+    const effectiveListening = testMode ? testListening : isListening;
+    
+    switch (currentState) {
+      case STATES.IDLE:
+        return { progress: 0, text: '准备就绪，点击开始语音对话' };
+      case STATES.PROCESSING:
+        if (effectiveListening) return { progress: 25, text: '正在聆听您的指令...' };
+        if (processingStep === 'interpreting') return { progress: 50, text: '正在理解您的需求...' };
+        if (processingStep === 'executing') return { progress: 75, text: '正在执行操作...' };
+        return { progress: 30, text: '正在处理中...' };
+      case STATES.CONFIRMING:
+        return { progress: 60, text: '请确认是否执行此操作' };
+      case STATES.ERROR:
+        return { progress: 0, text: '出现错误，请重试' };
+      default:
+        return { progress: 0, text: '' };
+    }
+  };
   
-  // 开始监听用户确认
-  const startListeningForConfirmation = useCallback(async () => {
+  // 开始语音交互
+  const startVoiceInteraction = useCallback(async () => {
+    if (processingRef.current) return;
+    
     try {
-      resetVoice();
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      await startListening();
+      // 检查基本支持
+      if (!isMicrophoneSupported() || !isSpeechRecognitionSupported()) {
+        setShowPermissionDialog(true);
+        return;
+      }
       
-      // 设置超时
-      confirmationTimeoutRef.current = setTimeout(() => {
-        stopListening();
-        setError('确认超时，请重试');
-        setCurrentState(STATES.ERROR);
-      }, 15000);
+      // 如果没有权限，显示权限对话框
+      if (!hasPermission && !testMode) {
+        setShowPermissionDialog(true);
+        return;
+      }
+      
+      // 重置状态
+      setError(null);
+      setUserInput('');
+      setConfirmText('');
+      setResultData(null);
+      setProcessingStep('');
+      resetVoice();
+      
+      // 设置为处理状态
+      setCurrentState(STATES.PROCESSING);
+      
+      // 通知父组件语音交互开始
+      if (onVoiceStart) {
+        onVoiceStart();
+      }
+      
+      if (testMode) {
+        // 测试模式：直接模拟语音识别成功
+        console.log('[VoiceInterface] 测试模式启动，设置listening状态');
+        setTestListening(true);
+      } else {
+        // 正常模式：启动真实的语音识别
+        await startListening();
+      }
     } catch (err) {
-      console.error('启动确认监听失败:', err);
-      setError('启动语音确认失败');
+      console.error('启动语音交互失败:', err);
+      setError('启动语音识别失败，请重试');
       setCurrentState(STATES.ERROR);
     }
-  }, [startListening, stopListening, resetVoice]);
+  }, [startListening, resetVoice, testMode, hasPermission, onVoiceStart]);
+  
+  // 更新handleRetry的依赖
+  const handleRetryUpdated = useCallback(() => {
+    if (userInput) {
+      processUserInput(userInput);
+    } else {
+      startVoiceInteraction();
+    }
+  }, [userInput, processUserInput, startVoiceInteraction]);
+  
+  // 处理语音识别结果
+  useEffect(() => {
+    const effectiveListening = testMode ? testListening : isListening;
+    const effectiveTranscript = testMode ? userInput : transcript;
+    
+    if (!effectiveListening && effectiveTranscript && effectiveTranscript.trim() && currentState === STATES.PROCESSING) {
+      if (!testMode) {
+        setUserInput(effectiveTranscript);
+      }
+      processUserInput(effectiveTranscript);
+    }
+  }, [isListening, testListening, transcript, userInput, currentState, testMode, processUserInput]);
   
   // 处理确认响应
   useEffect(() => {
@@ -295,7 +405,7 @@ const VoiceInterface = ({
           handleCancel();
           break;
         case 'RETRY':
-          handleRetry();
+          handleRetryUpdated();
           break;
         default:
           speak('请明确说"确认"、"取消"或"重试"', 'zh-CN', 1, 1, () => {
@@ -306,94 +416,8 @@ const VoiceInterface = ({
           break;
       }
     }
-  }, [isListening, testListening, transcript, userInput, currentState, classifyIntent, testMode]);
+  }, [isListening, testListening, transcript, userInput, currentState, classifyIntent, testMode, executeAction, handleCancel, handleRetryUpdated, speak, startListeningForConfirmation]);
   
-  // 执行操作
-  const executeAction = useCallback(async () => {
-    if (!actionData) return;
-    
-    try {
-      setProcessingStep('executing');
-      setCurrentState(STATES.PROCESSING);
-      
-      console.log('正在执行操作:', actionData);
-      const result = await apiClient.execute(
-        actionData.toolId || actionData.action, 
-        actionData.params, 
-        sessionId, 
-        1
-      );
-      
-      setResultData(result);
-      
-      // 播放执行结果
-      const resultText = formatResultForSpeech(result);
-      await speakResult(resultText);
-      
-      setCurrentState(STATES.IDLE);
-      
-      if (onResult) {
-        onResult(result);
-      }
-    } catch (err) {
-      console.error('执行操作失败:', err);
-      setError(err.message || '执行失败，请重试');
-      setCurrentState(STATES.ERROR);
-    }
-  }, [actionData, sessionId, onResult]);
-  
-  // 播放结果
-  const speakResult = useCallback(async (text) => {
-    return new Promise((resolve) => {
-      speak(text, 'zh-CN', 1, 1, () => {
-        resolve();
-      });
-    });
-  }, [speak]);
-  
-  // 格式化结果用于语音播报
-  const formatResultForSpeech = (data) => {
-    if (!data) return '操作完成';
-    if (typeof data === 'string') return data;
-    if (data.tts_message) return data.tts_message;
-    if (data.message) return data.message;
-    if (data.content) return data.content;
-    if (data.result) return data.result;
-    return '操作已完成';
-  };
-  
-  // 处理取消
-  const handleCancel = () => {
-    setCurrentState(STATES.IDLE);
-    speak('操作已取消');
-    resetSession();
-  };
-  
-  // 处理重试
-  const handleRetry = () => {
-    if (userInput) {
-      processUserInput(userInput);
-    } else {
-      startVoiceInteraction();
-    }
-  };
-  
-  // 重置会话
-  const resetSession = () => {
-    setCurrentState(STATES.IDLE);
-    setError(null);
-    setUserInput('');
-    setConfirmText('');
-    setResultData(null);
-    setActionData(null);
-    setProcessingStep('');
-    cancelTTS();
-    stopListening();
-    resetVoice();
-    clearTimeout(confirmationTimeoutRef.current);
-    processingRef.current = false;
-  };
-
   // 测试模式：手动触发语音结果
   const simulateVoiceResult = useCallback((text) => {
     if (!testMode) return;
@@ -422,7 +446,7 @@ const VoiceInterface = ({
             handleCancel();
             break;
           case 'RETRY':
-            handleRetry();
+            handleRetryUpdated();
             break;
           default:
             speak('请明确说"确认"、"取消"或"重试"', 'zh-CN', 1, 1);
@@ -430,7 +454,7 @@ const VoiceInterface = ({
         }
       }
     }, 100);
-  }, [testMode, currentState, processUserInput, classifyIntent, userInput, executeAction, handleCancel, handleRetry, speak]);
+  }, [testMode, currentState, processUserInput, classifyIntent, userInput, executeAction, handleCancel, handleRetryUpdated, speak]);
   
   // 处理语音错误
   useEffect(() => {
@@ -466,6 +490,20 @@ const VoiceInterface = ({
       }
     };
   }, [testMode, simulateVoiceResult, currentState, testListening]);
+  
+  // 权限处理函数
+  const handlePermissionGranted = useCallback(() => {
+    setHasPermission(true);
+    setShowPermissionDialog(false);
+    // 权限获取成功后，立即开始语音交互
+    setTimeout(() => {
+      startVoiceInteraction();
+    }, 500);
+  }, [startVoiceInteraction]);
+  
+  const handlePermissionDialogClose = useCallback(() => {
+    setShowPermissionDialog(false);
+  }, []);
   
   // 清理函数
   useEffect(() => {
@@ -537,7 +575,7 @@ const VoiceInterface = ({
               </Button>
               <Button 
                 icon={<ReloadOutlined />}
-                onClick={handleRetry}
+                onClick={handleRetryUpdated}
               >
                 重试
               </Button>
@@ -605,6 +643,13 @@ const VoiceInterface = ({
           </Button>
         )}
       </div>
+      
+      {/* 麦克风权限对话框 */}
+      <MicrophonePermissionDialog
+        visible={showPermissionDialog}
+        onClose={handlePermissionDialogClose}
+        onPermissionGranted={handlePermissionGranted}
+      />
     </VoiceContainer>
   );
 };

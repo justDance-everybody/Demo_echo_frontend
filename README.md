@@ -33,14 +33,30 @@
 git clone https://github.com/justDance-everybody/Demo_echo_frontend.git
 cd Demo_echo_frontend
 
-# 安装依赖
+# 方法1：使用快速启动脚本（推荐）
+./quick-start.sh
+
+# 方法2：手动启动
 cd frontend
 npm install
-
-# 启动开发服务器
 npm start
 
 # 打开浏览器访问 http://localhost:3000
+```
+
+### 远程开发端口转发问题排查
+
+如果在远程开发环境中遇到端口转发问题，可以使用诊断工具：
+
+```bash
+# 运行端口转发诊断脚本
+./debug-port-forwarding.sh
+
+# 常见解决方案：
+# 1. 检查React服务器是否运行：ps aux | grep react-scripts
+# 2. 重新配置Cursor端口转发：Cmd+Shift+P → "Ports: Focus on Ports View"
+# 3. 确保端口转发设置为"公开"(Public)模式
+# 4. 如有必要重载SSH连接：Cmd+Shift+P → "Remote-SSH: Reload Window"
 ```
 
 ### 测试运行

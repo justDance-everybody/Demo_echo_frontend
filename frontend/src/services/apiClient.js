@@ -1,6 +1,13 @@
 import axios from 'axios';
 
+// 根据环境变量配置API基础URL
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
+const USE_MOCKS = process.env.REACT_APP_USE_MOCKS === 'true';
+
+console.log(`🔧 API配置: 基础URL=${API_BASE_URL}, 使用Mock=${USE_MOCKS}`);
+
 const api = axios.create({
+  baseURL: API_BASE_URL,
   timeout: 15000,
 });
 
@@ -441,6 +448,28 @@ const apiClientInstance = {
   createDeveloperApplication,
   testSavedApiService,          // Renamed original testApiService
   testUnsavedDeveloperTool,     // Added new method
+};
+
+// API配置信息
+export const apiConfig = {
+  baseURL: API_BASE_URL,
+  useMocks: USE_MOCKS,
+  timeout: 15000,
+  
+  // 获取当前配置
+  getConfig: () => ({
+    baseURL: API_BASE_URL,
+    useMocks: USE_MOCKS,
+    environment: process.env.NODE_ENV
+  }),
+  
+  // 检查是否连接到真实后端
+  isRealBackend: () => !USE_MOCKS,
+  
+  // 获取状态描述
+  getStatusDescription: () => USE_MOCKS ? 
+    '🎭 当前使用Mock数据 (假数据模式)' : 
+    `🌐 连接真实后端: ${API_BASE_URL}`
 };
 
 export default apiClientInstance; 

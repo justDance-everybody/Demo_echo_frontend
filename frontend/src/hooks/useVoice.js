@@ -53,7 +53,13 @@ const useVoice = () => {
   // 检查麦克风权限
   const checkMicrophonePermission = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
       // 成功获取麦克风权限
       console.log('[useVoice] 成功获取麦克风权限');
       // 释放媒体流
@@ -61,7 +67,27 @@ const useVoice = () => {
       return true;
     } catch (err) {
       console.error('[useVoice] 获取麦克风权限失败:', err);
-      setError(`麦克风权限错误: ${err.message}`);
+      
+      // 根据错误类型提供更详细的错误信息
+      let errorMessage = '麦克风权限错误';
+      switch (err.name) {
+        case 'NotFoundError':
+          errorMessage = '未检测到麦克风设备，请连接麦克风后重试';
+          break;
+        case 'NotAllowedError':
+          errorMessage = '麦克风权限被拒绝，请点击地址栏的🔒图标允许麦克风权限';
+          break;
+        case 'NotReadableError':
+          errorMessage = '麦克风设备被占用，请关闭其他使用麦克风的应用';
+          break;
+        case 'OverconstrainedError':
+          errorMessage = '麦克风设备不满足要求，请尝试其他麦克风';
+          break;
+        default:
+          errorMessage = `麦克风访问失败: ${err.message}`;
+      }
+      
+      setError(errorMessage);
       return false;
     }
   }, []);
