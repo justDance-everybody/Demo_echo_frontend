@@ -1,5 +1,5 @@
 import React from 'react';
-import './StatusBar.css';
+import './StatusBar.css'; 
 
 const StatusBar = ({ currentStatus }) => {
 
@@ -25,7 +25,7 @@ const StatusBar = ({ currentStatus }) => {
     };
 
     return (
-        <div className={`status-bar-container status-${currentStatus}`} data-testid="status-bar">
+        <div className={`status-bar-container status-${currentStatus}`}>
             <p className="status-text">{getStatusText(currentStatus)}</p>
         </div>
     );

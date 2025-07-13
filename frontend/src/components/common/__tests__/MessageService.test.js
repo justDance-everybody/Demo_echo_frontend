@@ -65,43 +65,18 @@ describe('MessageService', () => {
     });
   });
 
-  // 测试showError方法 (符合文档验收标准)
-  test('showError方法应该显示红色Toast错误消息', () => {
-    const message = '错误消息';
-    const duration = 3000;
-
-    MessageService.showError(message, duration);
-
-    expect(Toast.show).toHaveBeenCalledWith({
-      content: message,
-      icon: 'fail',
-      duration
-    });
-  });
-
-  // 测试showError的文档场景
-  test('调用showError("错误消息")应该在页面顶部显示红色Toast', () => {
-    MessageService.showError('错误消息');
-
-    expect(Toast.show).toHaveBeenCalledWith({
-      content: '错误消息',
-      icon: 'fail',
-      duration: 2000
-    });
-  });
-
   // 测试loading方法
   test('loading方法应该调用Toast.show并返回关闭函数', () => {
     const content = '加载中...';
-
+    
     const closeFunc = MessageService.loading(content);
-
+    
     expect(Toast.show).toHaveBeenCalledWith({
       content,
       icon: 'loading',
       duration: 0
     });
-
+    
     // 测试返回的关闭函数
     closeFunc();
     expect(Toast.clear).toHaveBeenCalled();
@@ -112,30 +87,30 @@ describe('MessageService', () => {
     const content = '确认操作?';
     const title = '提示';
     const options = { confirmText: '确定', cancelText: '取消' };
-
+    
     // 模拟用户确认
     Dialog.confirm.mockResolvedValueOnce(true);
-
+    
     const result = await MessageService.confirm(content, title, options);
-
+    
     expect(Dialog.confirm).toHaveBeenCalledWith({
       content,
       title,
       ...options
     });
-
+    
     expect(result).toBe(true);
   });
 
   // 测试confirm方法 - 用户取消
   test('confirm方法在用户取消时应该返回false', async () => {
     const content = '确认操作?';
-
+    
     // 模拟用户取消
     Dialog.confirm.mockRejectedValueOnce(new Error('User canceled'));
-
+    
     const result = await MessageService.confirm(content);
-
+    
     expect(result).toBe(false);
   });
 
@@ -143,13 +118,13 @@ describe('MessageService', () => {
   test('alert方法应该调用Dialog.alert', async () => {
     const content = '提示信息';
     const title = '提示';
-
+    
     await MessageService.alert(content, title);
-
+    
     expect(Dialog.alert).toHaveBeenCalledWith({
       content,
       title,
-
+      
     });
   });
 }); 

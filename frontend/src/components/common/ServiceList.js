@@ -15,28 +15,6 @@ const SearchContainer = styled.div`
   .adm-search-bar {
     --background: var(--surface);
     --border-radius: var(--radius-lg);
-    --border: 1px solid var(--border);
-    --color: var(--text-color);
-    --placeholder-color: var(--text-secondary);
-  }
-  
-  /* 确保暗色模式下搜索框的可见性 */
-  [data-theme="dark"] & {
-    .adm-search-bar {
-      --background: var(--dark-surface);
-      --color: var(--dark-text);
-      --placeholder-color: var(--dark-text-secondary);
-      --border: 1px solid var(--dark-border);
-    }
-    
-    .adm-search-bar-input {
-      color: var(--dark-text) !important;
-      background-color: var(--dark-surface) !important;
-    }
-    
-    .adm-search-bar-input::placeholder {
-      color: var(--dark-text-secondary) !important;
-    }
   }
 `;
 
@@ -48,22 +26,7 @@ const StyledTabs = styled(Tabs)`
   margin-bottom: var(--spacing-4);
   
   .adm-tabs-tab {
-    color: var(--text-color) !important;
-  }
-  
-  .adm-tabs-tab-active {
-    color: var(--color-primary) !important;
-  }
-  
-  /* 确保暗色模式下的文字可见性 */
-  [data-theme="dark"] & {
-    .adm-tabs-tab {
-      color: var(--dark-text) !important;
-    }
-    
-    .adm-tabs-tab-active {
-      color: var(--color-primary) !important;
-    }
+    color: var(--text);
   }
 `;
 
@@ -89,9 +52,6 @@ const ViewToggle = styled.div`
     border-radius: var(--radius-md);
     cursor: pointer;
     transition: all var(--transition-fast);
-    border: none;
-    background: none;
-    color: var(--text-secondary);
     
     &.active {
       color: var(--color-primary);
@@ -99,27 +59,7 @@ const ViewToggle = styled.div`
     }
     
     &:hover:not(.active) {
-      background-color: var(--surface);
-      color: var(--text-color);
-    }
-  }
-  
-  /* 暗色模式下的样式 */
-  [data-theme="dark"] & {
-    color: var(--dark-text-secondary);
-    
-    .toggle-button {
-      color: var(--dark-text-secondary);
-      
-      &.active {
-        color: var(--color-primary);
-        background-color: rgba(104, 211, 145, 0.2);
-      }
-      
-      &:hover:not(.active) {
-        background-color: var(--dark-surface);
-        color: var(--dark-text);
-      }
+      background-color: var(--surface-hover);
     }
   }
 `;
@@ -156,30 +96,7 @@ const SortControls = styled.div`
     border-radius: var(--radius-md);
     border: 1px solid var(--border);
     background-color: var(--surface);
-    color: var(--text-color);
-    
-    option {
-      background-color: var(--surface);
-      color: var(--text-color);
-    }
-  }
-  
-  /* 暗色模式下的样式 */
-  [data-theme="dark"] & {
-    .sort-label {
-      color: var(--dark-text-secondary);
-    }
-    
-    .sort-select {
-      border-color: var(--dark-border);
-      background-color: var(--dark-surface);
-      color: var(--dark-text);
-      
-      option {
-        background-color: var(--dark-surface);
-        color: var(--dark-text);
-      }
-    }
+    color: var(--text);
   }
 `;
 
@@ -187,19 +104,9 @@ const FilterButton = styled(Button)`
   display: flex;
   align-items: center;
   --border-radius: var(--radius-md);
-  --color: var(--text-color);
-  --background-color: var(--surface);
-  --border-color: var(--border);
   
   .adm-button-icon {
     font-size: 18px;
-  }
-  
-  /* 暗色模式下的样式 */
-  [data-theme="dark"] & {
-    --color: var(--dark-text);
-    --background-color: var(--dark-surface);
-    --border-color: var(--dark-border);
   }
 `;
 
@@ -314,9 +221,9 @@ const TagCheckbox = styled.div`
  * @param {string} props.defaultView 默认视图
  * @param {Function} props.onViewModeChange 视图模式变更回调
  */
-const ServiceList = ({
-  services = [],
-  loading = false,
+const ServiceList = ({ 
+  services = [], 
+  loading = false, 
   onServiceClick,
   onSearch,
   error,
@@ -334,45 +241,45 @@ const ServiceList = ({
     tags: [],
     ratings: []
   });
-
+  
   // 从服务数据中提取所有可能的标签和提供者
   const allTags = Array.from(new Set(services.flatMap(service => service.tags || [])));
   const allProviders = Array.from(new Set(services.map(service => service.provider || '系统')));
-
+  
   // 计算应用的筛选数量
-  const activeFilterCount =
-    filters.providers.length +
-    filters.tags.length +
+  const activeFilterCount = 
+    filters.providers.length + 
+    filters.tags.length + 
     filters.ratings.length;
-
+  
   // 过滤服务
   const filteredServices = services.filter(service => {
     // 搜索过滤
-    const searchMatch = !searchText ||
+    const searchMatch = !searchText || 
       service.title.toLowerCase().includes(searchText.toLowerCase()) ||
       service.description.toLowerCase().includes(searchText.toLowerCase()) ||
-      (service.tags && service.tags.some(tag =>
+      (service.tags && service.tags.some(tag => 
         tag.toLowerCase().includes(searchText.toLowerCase())
       ));
-
+    
     // 类型过滤
     const typeMatch = activeTab === 'all' || service.type === activeTab;
-
+    
     // 高级筛选 - 服务提供者
-    const providerMatch = filters.providers.length === 0 ||
+    const providerMatch = filters.providers.length === 0 || 
       filters.providers.includes(service.provider || '系统');
-
+    
     // 高级筛选 - 标签
-    const tagsMatch = filters.tags.length === 0 ||
+    const tagsMatch = filters.tags.length === 0 || 
       (service.tags && filters.tags.some(tag => service.tags.includes(tag)));
-
+    
     // 高级筛选 - 评分
     const ratingMatch = filters.ratings.length === 0 ||
       filters.ratings.includes(Math.floor(service.rating || 5));
-
+    
     return searchMatch && typeMatch && providerMatch && tagsMatch && ratingMatch;
   });
-
+  
   // 排序服务
   const sortedServices = [...filteredServices].sort((a, b) => {
     switch (sortBy) {
@@ -392,34 +299,34 @@ const ServiceList = ({
         return 0;
     }
   });
-
+  
   const handleSearch = (value) => {
     setSearchText(value);
     if (onSearch) {
       onSearch(value);
     }
   };
-
+  
   const handleTabChange = (key) => {
     setActiveTab(key);
   };
-
+  
   const toggleViewMode = (mode) => {
     setViewMode(mode);
     if (onViewModeChange) {
       onViewModeChange(mode);
     }
   };
-
+  
   const handleSortChange = (e) => {
     setSortBy(e.target.value);
   };
-
+  
   // 处理筛选变更
   const handleFilterChange = (type, value) => {
     setFilters(prev => {
       const updated = { ...prev };
-
+      
       if (type === 'providers') {
         if (updated.providers.includes(value)) {
           updated.providers = updated.providers.filter(p => p !== value);
@@ -439,11 +346,11 @@ const ServiceList = ({
           updated.ratings = [...updated.ratings, value];
         }
       }
-
+      
       return updated;
     });
   };
-
+  
   // 重置所有筛选
   const resetFilters = () => {
     setFilters({
@@ -452,12 +359,12 @@ const ServiceList = ({
       ratings: []
     });
   };
-
+  
   // 渲染加载状态
   if (loading) {
     return <LoadingSpinner text="加载服务中..." />;
   }
-
+  
   // 渲染错误状态
   if (error) {
     return (
@@ -471,7 +378,7 @@ const ServiceList = ({
       />
     );
   }
-
+  
   // 渲染空状态
   if (!services || services.length === 0) {
     return (
@@ -483,7 +390,7 @@ const ServiceList = ({
       />
     );
   }
-
+  
   const renderControls = () => (
     <>
       <SearchContainer>
@@ -492,55 +399,48 @@ const ServiceList = ({
           value={searchText}
           onChange={handleSearch}
           onCancel={() => handleSearch('')}
-          data-testid="services-search-input"
-          aria-label="搜索服务"
         />
       </SearchContainer>
-
+      
       <StyledTabs activeKey={activeTab} onChange={handleTabChange}>
         <Tabs.Tab title="全部" key="all" />
         <Tabs.Tab title="语音" key="voice" />
         <Tabs.Tab title="内容" key="content" />
       </StyledTabs>
-
+      
       <ControlsRow>
         <div style={{ display: 'flex', gap: 'var(--spacing-2)' }}>
           <ViewToggle>
-            <button
+            <div 
               className={`toggle-button ${viewMode === 'grid' ? 'active' : ''}`}
               onClick={() => toggleViewMode('grid')}
               aria-label="网格视图"
-              data-testid="view-toggle-button-grid"
-              type="button"
             >
               <AppstoreOutline fontSize={20} />
-            </button>
-            <button
+            </div>
+            <div 
               className={`toggle-button ${viewMode === 'list' ? 'active' : ''}`}
               onClick={() => toggleViewMode('list')}
               aria-label="列表视图"
-              data-testid="view-toggle-button-list"
-              type="button"
             >
               <UnorderedListOutline fontSize={20} />
-            </button>
+            </div>
           </ViewToggle>
-
+          
           <FilterButton onClick={() => setShowFilter(true)}>
             <FilterOutline style={{ marginRight: 4 }} />
             筛选
             {activeFilterCount > 0 && <FilterCount>{activeFilterCount}</FilterCount>}
           </FilterButton>
         </div>
-
+        
         <SortControls>
           <span className="sort-label">排序:</span>
-          <select
+          <select 
             className="sort-select"
             value={sortBy}
             onChange={handleSortChange}
             data-testid="sort-selector"
-            aria-label="排序方式"
           >
             <option value="newest">最新</option>
             <option value="oldest">最早</option>
@@ -553,7 +453,7 @@ const ServiceList = ({
       </ControlsRow>
     </>
   );
-
+  
   // 渲染筛选弹窗
   const renderFilterPopup = () => (
     <FilterPopup
@@ -564,19 +464,19 @@ const ServiceList = ({
     >
       <FilterHeader>
         <div className="title">筛选服务</div>
-        <button
+        <button 
           className="close-button"
           onClick={() => setShowFilter(false)}
         >
           <CloseOutline fontSize={24} />
         </button>
       </FilterHeader>
-
+      
       <FilterContent>
         {allProviders.length > 0 && (
           <FilterSection>
             <div className="section-title">服务提供者</div>
-            <Checkbox.Group
+            <Checkbox.Group 
               value={filters.providers}
               onChange={(values) => setFilters(prev => ({ ...prev, providers: values }))}
             >
@@ -588,26 +488,16 @@ const ServiceList = ({
             </Checkbox.Group>
           </FilterSection>
         )}
-
+        
         {allTags.length > 0 && (
           <FilterSection>
             <div className="section-title">标签</div>
             <TagsFilterContainer>
               {allTags.map(tag => (
-                <TagCheckbox
+                <TagCheckbox 
                   key={tag}
                   className={filters.tags.includes(tag) ? 'selected' : ''}
                   onClick={() => handleFilterChange('tags', tag)}
-                  role="button"
-                  tabIndex={0}
-                  aria-pressed={filters.tags.includes(tag)}
-                  aria-label={`筛选标签: ${tag}`}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      handleFilterChange('tags', tag);
-                    }
-                  }}
                 >
                   {tag}
                 </TagCheckbox>
@@ -615,10 +505,10 @@ const ServiceList = ({
             </TagsFilterContainer>
           </FilterSection>
         )}
-
+        
         <FilterSection>
           <div className="section-title">评分</div>
-          <Checkbox.Group
+          <Checkbox.Group 
             value={filters.ratings}
             onChange={(values) => setFilters(prev => ({ ...prev, ratings: values }))}
           >
@@ -630,15 +520,15 @@ const ServiceList = ({
           </Checkbox.Group>
         </FilterSection>
       </FilterContent>
-
+      
       <FilterActions>
-        <Button
+        <Button 
           onClick={resetFilters}
           fill="outline"
         >
           重置
         </Button>
-        <Button
+        <Button 
           color="primary"
           onClick={() => setShowFilter(false)}
         >
@@ -647,14 +537,14 @@ const ServiceList = ({
       </FilterActions>
     </FilterPopup>
   );
-
+  
   // 渲染搜索无结果
   if (filteredServices.length === 0) {
     return (
       <Container>
         {renderControls()}
         {renderFilterPopup()}
-
+        
         <EmptyState
           type="no-results"
           title="无搜索结果"
@@ -669,20 +559,14 @@ const ServiceList = ({
       </Container>
     );
   }
-
+  
   return (
     <Container>
       {renderControls()}
       {renderFilterPopup()}
-
+      
       {viewMode === 'grid' ? (
-        <GridContainer
-          className="grid-view"
-          data-testid="service-list-container"
-          role="region"
-          aria-live="polite"
-          aria-label="服务列表"
-        >
+        <GridContainer className="grid-view">
           {sortedServices.map(service => (
             <ServiceCard
               key={service.id}
@@ -698,13 +582,7 @@ const ServiceList = ({
           ))}
         </GridContainer>
       ) : (
-        <ListContainer
-          className="list-view"
-          data-testid="service-list-container"
-          role="region"
-          aria-live="polite"
-          aria-label="服务列表"
-        >
+        <ListContainer className="list-view">
           {sortedServices.map(service => (
             <ServiceCard
               key={service.id}

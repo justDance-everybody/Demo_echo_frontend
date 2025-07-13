@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Button, Toast, Skeleton } from 'antd-mobile';
-import {
+import { 
   ClockCircleOutline,
   StarOutline,
   StarFill,
@@ -242,7 +242,7 @@ const ServiceDetailPage = () => {
   const [error, setError] = useState(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [relatedServices, setRelatedServices] = useState([]);
-
+  
   // 获取服务详情
   useEffect(() => {
     const fetchServiceDetails = async () => {
@@ -250,17 +250,16 @@ const ServiceDetailPage = () => {
         setLoading(true);
         const data = await apiClient.getToolById(id);
         setService(data);
-
+        
         // 获取相关服务
-        const result = await apiClient.getItems();
-        const allItems = result.items || [];
+        const allTools = await apiClient.getTools();
         // 简单实现：排除当前服务，随机获取2-4个相关服务
-        const filtered = allItems.filter(item => item.id !== id);
+        const filtered = allTools.filter(tool => tool.id !== id);
         const randomRelated = filtered
           .sort(() => 0.5 - Math.random())
           .slice(0, Math.min(4, filtered.length));
         setRelatedServices(randomRelated);
-
+        
         setLoading(false);
       } catch (err) {
         console.error('获取服务详情失败:', err);
@@ -272,19 +271,19 @@ const ServiceDetailPage = () => {
         });
       }
     };
-
+    
     fetchServiceDetails();
-
+    
     // 检查是否已收藏（模拟）
     const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
     setIsFavorite(favorites.includes(id));
   }, [id]);
-
+  
   // 处理收藏/取消收藏
   const handleToggleFavorite = () => {
     const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
     let newFavorites;
-
+    
     if (isFavorite) {
       newFavorites = favorites.filter(favId => favId !== id);
       Toast.show({
@@ -298,11 +297,11 @@ const ServiceDetailPage = () => {
         content: '已添加到收藏'
       });
     }
-
+    
     localStorage.setItem('favorites', JSON.stringify(newFavorites));
     setIsFavorite(!isFavorite);
   };
-
+  
   // 处理服务启动
   const handleStartService = () => {
     // 这里可以添加启动服务的逻辑
@@ -311,17 +310,17 @@ const ServiceDetailPage = () => {
       content: '服务启动成功'
     });
   };
-
+  
   // 处理导航到相关服务
   const handleNavigateToRelated = (relatedId) => {
     navigate(`/services/${relatedId}`);
   };
-
+  
   // 处理返回
   const handleBack = () => {
     navigate('/services');
   };
-
+  
   // 渲染加载状态
   if (loading) {
     return (
@@ -333,7 +332,7 @@ const ServiceDetailPage = () => {
       </AppLayout>
     );
   }
-
+  
   // 渲染错误状态
   if (error) {
     return (
@@ -346,7 +345,7 @@ const ServiceDetailPage = () => {
       </AppLayout>
     );
   }
-
+  
   // 如果没有数据
   if (!service) {
     return (
@@ -359,7 +358,7 @@ const ServiceDetailPage = () => {
       </AppLayout>
     );
   }
-
+  
   return (
     <AppLayout title={service.name} showBack={true} onBack={handleBack}>
       <DetailContainer>
@@ -368,7 +367,7 @@ const ServiceDetailPage = () => {
             {/* 服务图标 */}
             {service.icon}
           </IconContainer>
-
+          
           <ServiceInfo>
             <ServiceTitle>{service.name}</ServiceTitle>
             <ServiceMeta>
@@ -381,34 +380,34 @@ const ServiceDetailPage = () => {
                 <span>评分: {service.rating || '4.8'}</span>
               </div>
             </ServiceMeta>
-
+            
             <TagsContainer>
               {(service.tags || ['AI', '智能服务', '语音交互']).map((tag, index) => (
                 <Tag key={index}>{tag}</Tag>
               ))}
             </TagsContainer>
           </ServiceInfo>
-
+          
           <ServiceActions>
-            <ActionButton
+            <ActionButton 
               className={`favorite ${isFavorite ? 'active' : ''}`}
               onClick={handleToggleFavorite}
             >
               {isFavorite ? <HeartFill /> : <HeartOutline />}
               {isFavorite ? '已收藏' : '收藏'}
             </ActionButton>
-
+            
             <ActionButton color="primary" onClick={handleStartService}>
               开始使用
             </ActionButton>
           </ServiceActions>
         </ServiceHeader>
-
+        
         <ContentSection>
           <h2>服务介绍</h2>
           <p>{service.description || '该服务暂无详细介绍。'}</p>
         </ContentSection>
-
+        
         <ContentSection>
           <h2>功能特点</h2>
           <FeaturesGrid>
@@ -425,13 +424,13 @@ const ServiceDetailPage = () => {
             ))}
           </FeaturesGrid>
         </ContentSection>
-
+        
         {relatedServices.length > 0 && (
           <ContentSection>
             <h2>相关服务</h2>
             <RelatedServices>
               {relatedServices.map((related) => (
-                <RelatedServiceCard
+                <RelatedServiceCard 
                   key={related.id}
                   onClick={() => handleNavigateToRelated(related.id)}
                 >
