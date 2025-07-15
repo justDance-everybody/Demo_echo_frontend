@@ -22,7 +22,7 @@ const ServicesPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
-
+  
   // 从本地存储中获取视图偏好
   const loadViewPreferences = () => {
     try {
@@ -33,14 +33,14 @@ const ServicesPage = () => {
     } catch (err) {
       console.error('无法加载视图偏好:', err);
     }
-
+    
     // 默认偏好
     return {
       viewMode: 'grid',
       sortBy: 'newest'
     };
   };
-
+  
   // 保存视图偏好到本地存储
   const saveViewPreferences = (preferences) => {
     try {
@@ -49,38 +49,37 @@ const ServicesPage = () => {
       console.error('无法保存视图偏好:', err);
     }
   };
-
+  
   // 初始视图偏好
   const [viewPreferences, setViewPreferences] = useState(loadViewPreferences());
-
+  
   // 更新视图偏好
   const updateViewPreferences = (updates) => {
     const newPreferences = { ...viewPreferences, ...updates };
     setViewPreferences(newPreferences);
     saveViewPreferences(newPreferences);
   };
-
+  
   // 加载服务
   const loadServices = async () => {
     setLoading(true);
     setError(null);
-
+    
     try {
-      const result = await apiClient.getItems();
-      const items = result.items || [];
-
+      const tools = await apiClient.getTools();
+      
       // 将工具数据转换为服务格式
-      const mappedServices = items.map(item => ({
-        id: item.id || item.tool_id,
-        title: item.name || item.title,
-        description: item.description,
-        tags: item.tags || [],
-        type: item.type || 'default',
-        provider: item.provider || '系统',
-        createdAt: item.created_at || new Date().toISOString(),
-        rating: item.rating || (Math.random() * 2 + 3).toFixed(1) // 仅用于演示，实际中应使用工具的真实评分
+      const mappedServices = tools.map(tool => ({
+        id: tool.id || tool.tool_id,
+        title: tool.name || tool.title,
+        description: tool.description,
+        tags: tool.tags || [],
+        type: tool.type || 'default',
+        provider: tool.provider || '系统',
+        createdAt: tool.created_at || new Date().toISOString(),
+        rating: tool.rating || (Math.random() * 2 + 3).toFixed(1) // 仅用于演示，实际中应使用工具的真实评分
       }));
-
+      
       setServices(mappedServices);
     } catch (err) {
       console.error('加载服务失败:', err);
@@ -90,32 +89,30 @@ const ServicesPage = () => {
       setLoading(false);
     }
   };
-
+  
   // 处理服务点击
   const handleServiceClick = (serviceId) => {
     // 导航到服务详情页
     navigate(`/services/${serviceId}`);
   };
-
+  
   // 处理视图模式变更
   const handleViewModeChange = (mode) => {
     updateViewPreferences({ viewMode: mode });
   };
-
+  
   // 初始加载
   useEffect(() => {
     loadServices();
   }, []);
-
+  
   return (
     <AppLayout
       title="服务中心"
       showTabBar={true}
       showSideNav={true}
-      showBack={true}
-      onBack={() => navigate('/')}
     >
-      <ServiceList
+      <ServiceList 
         services={services}
         loading={loading}
         error={error}

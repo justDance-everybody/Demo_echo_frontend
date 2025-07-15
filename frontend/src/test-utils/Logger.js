@@ -78,16 +78,14 @@ class Logger {
     // 此方法在浏览器中永远不会被调用
     if (typeof process !== 'undefined' && process.versions && process.versions.node) {
       try {
-        // 懒加载fs模块 - 使用动态import避免webpack静态分析
+        // 懒加载fs模块
         if (!this._fs) {
-          // 使用eval来避免webpack静态分析和打包fs模块
-          this._fs = eval('require')('fs');
+          this._fs = require('fs');
         }
         const logEntry = `${logMessage} ${data ? JSON.stringify(data) : ''}\n`;
         this._fs.appendFileSync(this.logPath, logEntry);
       } catch (e) {
         console.error('写入日志文件失败:', e);
-        this.logToFile = false; // 禁用文件日志
       }
     }
   }

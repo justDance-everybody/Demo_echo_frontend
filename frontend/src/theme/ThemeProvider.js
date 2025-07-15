@@ -32,24 +32,15 @@ export const ThemeContext = createContext({
 const LegacyThemeProvider = ({ children }) => {
   // 从本地存储获取主题设置，默认为亮色主题
   const [theme, setTheme] = useState(() => {
-    try {
     const savedTheme = localStorage.getItem('theme');
     return savedTheme || 'light';
-    } catch (e) {
-      console.warn('localStorage access blocked:', e);
-      return 'light';
-    }
   });
 
   // 切换主题函数
   const toggleTheme = () => {
     setTheme(prevTheme => {
       const newTheme = prevTheme === 'light' ? 'dark' : 'light';
-      try {
       localStorage.setItem('theme', newTheme);
-      } catch (e) {
-        console.warn('localStorage write access blocked:', e);
-      }
       return newTheme;
     });
   };

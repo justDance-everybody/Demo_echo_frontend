@@ -151,21 +151,6 @@ const GlobalStyles = createGlobalStyle`
     --background-color: var(--surface);
     --text-color: var(--text);
   }
-
-  /* 确保足够的颜色对比度 */
-  .ant-typography, .adm-list-item-content-main {
-    color: var(--text) !important;
-  }
-
-  /* 确保所有文本元素都有足够的对比度 */
-  p, span, div, label {
-    color: inherit;
-  }
-
-  /* 确保按钮有足够的对比度 */
-  button {
-    color: inherit;
-  }
 `;
 
 export default GlobalStyles; 

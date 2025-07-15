@@ -1,31 +1,11 @@
-/* eslint-disable no-undef */
 describe('Theme Functionality', () => {
-  const a11yOptions = {
-    rules: {
-      // TODO: 调查并移除此豁免。一个顽固的、全局性的A11y问题导致测试失败。
-      // 这个问题似乎与styled-components、antd-mobile和cypress-axe的交互有关。
-      'landmark-one-main': { enabled: false },
-      'color-contrast': { enabled: false }, // 暂时跳过颜色对比度问题
-      'aria-command-name': { enabled: false }, // 暂时跳过Ant Design Mobile的已知问题
-      'page-has-heading-one': { enabled: false }, // 暂时跳过页面标题问题
-      'region': { enabled: false }, // 暂时跳过区域标记问题
-      'aria-allowed-attr': { enabled: false }, // 暂时跳过aria属性问题
-      'button-name': { enabled: false }, // 暂时跳过按钮名称问题
-    },
-  };
-
   beforeEach(() => {
-    // 清理localStorage，确保测试环境纯净
-    cy.clearLocalStorageForTest();
-    // 设置认证状态
-    cy.setupAuth('user');
     // 访问设置页面
     cy.visit('/settings');
     cy.injectAxe(); // Inject axe-core for accessibility testing
+    // 清理localStorage，确保测试环境纯净
+    cy.clearLocalStorageForTest(); 
     cy.saveLocalStorageSnapshot('before-each-theme-test'); // 保存清理后的状态快照
-
-    // 确保在外观和主题标签页
-    cy.contains('.adm-tabs-tab', '外观和主题').click();
   });
 
   afterEach(() => {
@@ -35,51 +15,100 @@ describe('Theme Functionality', () => {
 
   context('Theme Toggle (Dark/Light Mode)', () => {
     it('should toggle between light and dark themes, persist choice, and be accessible', () => {
-      cy.checkA11y(null, a11yOptions); // Initial accessibility check
+      cy.checkA11y(); // Initial accessibility check
 
-      // 简化测试：只检查主题切换元素是否存在和可点击
-      cy.log('Finding theme toggle');
-      cy.get('#theme-toggle-button-instance').should('exist').as('themeToggle');
+      // 初始状态检查 (假设默认为 light 主题)
+      cy.get('html').should('not.have.attr', 'data-theme', 'dark');
+      cy.getLocalStorage('theme').then(initialTheme => {
+        // 初始localStorage中 theme 可能是 null 或 'light'
+        // 对于本测试，我们主要关注切换行为是否正确写入 localStorage
+        if (initialTheme !== null) {
+            expect(initialTheme).to.equal('light'); // 如果存在，应该是 light
+        }
+      });
 
-      // 点击主题切换
-      cy.log('Clicking theme toggle');
-      cy.get('@themeToggle').click({ force: true });
+      const themeToggleSelector = '.ant-switch'; 
+      cy.get(themeToggleSelector).first().as('themeToggle');
 
-      // 简单的延时等待
-      cy.wait(500);
+      // 切换到暗黑主题
+      cy.log('Clicking theme toggle to enable dark mode');
+      cy.get('@themeToggle').click();
+      cy.get('html').should('have.attr', 'data-theme', 'dark');
+      cy.getLocalStorage('theme').should('equal', 'dark');
+      cy.checkA11y(); // Check accessibility after dark mode toggle
+      cy.saveLocalStorageSnapshot('after-dark-mode');
 
-      cy.checkA11y(null, a11yOptions); // Check accessibility after theme toggle
-      cy.log('Theme toggle test completed successfully');
+      // 切换回明亮主题
+      cy.log('Clicking theme toggle to disable dark mode');
+      cy.get('@themeToggle').click();
+      cy.get('html').should('have.attr', 'data-theme', 'light'); //明确检查light
+      cy.getLocalStorage('theme').should('equal', 'light');
+      cy.checkA11y(); // Check accessibility after toggling back to light mode
+      cy.saveLocalStorageSnapshot('after-light-mode-toggle-back');
     });
   });
 
   context('Custom Theme Adjustments (ThemeSettings)', () => {
     it('should allow adjusting primary color, persist it, and be accessible', () => {
-      cy.checkA11y(null, a11yOptions); // Initial accessibility check
+      cy.checkA11y(); // Initial accessibility check
+      const newPrimaryColor = '#ff00ff'; // Example: Magenta
 
       cy.log('Finding primary color input');
-      cy.get('#primary-color-picker').should('exist').as('primaryColorInput');
+      // 使用更具体的选择器，例如基于其旁边的label文本，或添加data-testid
+      cy.contains('label', '主色调').next('input[type="color"]').as('primaryColorInput');
 
-      cy.log('Interacting with primary color picker');
-      cy.get('@primaryColorInput').click({ force: true });
+      cy.log('Changing primary color');
+      cy.get('@primaryColorInput')
+        .invoke('val', newPrimaryColor)
+        .trigger('input') 
+        .trigger('change'); 
+      cy.checkA11y(); // Check accessibility after color change
 
-      cy.wait(500);
-      cy.checkA11y(null, a11yOptions); // Check accessibility after interaction
-      cy.log('Primary color test completed successfully');
+      cy.log('Verifying CSS variable for primary color');
+      cy.document().then((doc) => {
+        const primaryColorVar = doc.documentElement.style.getPropertyValue('--primary-color').trim();
+        expect(primaryColorVar).to.equal(newPrimaryColor);
+      });
+
+      cy.log('Verifying localStorage for custom theme');
+      cy.getLocalStorage('customTheme').then(customThemeJSON => {
+        expect(customThemeJSON).to.not.be.null;
+        const customTheme = JSON.parse(customThemeJSON);
+        expect(customTheme['--primary-color']).to.equal(newPrimaryColor);
+      });
+      cy.saveLocalStorageSnapshot('after-custom-primary-color');
     });
 
     it('should allow adjusting border radius, persist it, and be accessible', () => {
-      cy.checkA11y(null, a11yOptions); // Initial accessibility check
+      cy.checkA11y(); // Initial accessibility check
+      const newBorderRadius = '12px';
+      const newBorderRadiusVal = '12'; 
 
       cy.log('Finding border radius input');
-      cy.get('#border-radius-slider').should('exist').as('borderRadiusSlider');
+      // 假设圆角调整控件旁边有标签 "圆角大小"
+      cy.contains('label', '圆角大小').next('input[type="range"]').as('borderRadiusSlider');
+      // 如果是InputNumber, 则可能是 cy.contains('label', '圆角大小').next('.ant-input-number').find('input')
 
-      cy.log('Interacting with border radius slider');
-      cy.get('@borderRadiusSlider').click({ force: true });
+      cy.log('Changing border radius');
+      cy.get('@borderRadiusSlider')
+        .invoke('val', newBorderRadiusVal)
+        .trigger('input')
+        .trigger('change');
+      cy.checkA11y(); // Check accessibility after radius change
 
-      cy.wait(500);
-      cy.checkA11y(null, a11yOptions); // Check accessibility after interaction
-      cy.log('Border radius test completed successfully');
+      cy.log('Verifying CSS variable for border radius');
+      cy.document().then((doc) => {
+        const borderRadiusVar = doc.documentElement.style.getPropertyValue('--border-radius').trim();
+        expect(borderRadiusVar).to.equal(newBorderRadius);
+      });
+
+      cy.log('Verifying localStorage for custom theme');
+      cy.getLocalStorage('customTheme').then(customThemeJSON => {
+        expect(customThemeJSON).to.not.be.null;
+        const customTheme = JSON.parse(customThemeJSON);
+        expect(customTheme['--border-radius']).to.equal(newBorderRadius);
+      });
+       cy.saveLocalStorageSnapshot('after-custom-border-radius');
     });
   });
 });

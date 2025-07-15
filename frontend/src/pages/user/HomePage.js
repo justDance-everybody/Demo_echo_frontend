@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Typography, Button, Space, Card, Row, Col, Spin, Layout, message, Modal } from 'antd';
+import { Typography, Button, Space, Card, Row, Col, Spin, Layout, message } from 'antd';
 import { AudioOutlined, AudioMutedOutlined, ReloadOutlined, SearchOutlined, RobotOutlined, GlobalOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
 import axios from 'axios';
-import VoiceInterface from '../../components/VoiceInterface';
+import VoiceDialog from '../../components/VoiceDialog';
 import { ThemeContext } from '../../theme/ThemeProvider';
-import { useTheme } from '../../contexts/ThemeContext';
 
 const { Title } = Typography;
 const { Content } = Layout;
@@ -60,12 +59,11 @@ const CardDescription = styled(Typography.Paragraph)`
 `;
 
 const HomePage = () => {
-  const { theme } = useTheme();
+  const { theme } = useContext(ThemeContext);
   const [isVoiceDialogOpen, setIsVoiceDialogOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [mcpServers, setMcpServers] = useState([]);
   const [selectedService, setSelectedService] = useState(null);
-  const [isVoiceFlowOpen, setIsVoiceFlowOpen] = useState(false);
 
   // 获取MCP服务列表
   useEffect(() => {
@@ -124,26 +122,6 @@ const HomePage = () => {
     setIsVoiceDialogOpen(false);
   };
 
-  // 新增：打开完整语音交互流程
-  const handleOpenVoiceFlow = () => {
-    setIsVoiceFlowOpen(true);
-  };
-
-  const handleCloseVoiceFlow = () => {
-    setIsVoiceFlowOpen(false);
-  };
-
-  // 处理语音交互流程结果
-  const handleVoiceFlowResult = (result) => {
-    console.log('语音交互流程完成:', result);
-    // 可以在这里处理结果，比如显示通知等
-  };
-
-  // 处理语音交互流程错误
-  const handleVoiceFlowError = (error) => {
-    console.error('语音交互流程错误:', error);
-  };
-
   // 根据服务类型获取图标和颜色
   const getServiceIconAndColor = (serviceId) => {
     const services = {
@@ -197,21 +175,10 @@ const HomePage = () => {
               icon={<AudioOutlined />}
               size="large"
               shape="round"
-              onClick={handleOpenVoiceFlow}
-              ghost
-              style={{ marginRight: 12 }}
-            >
-              完整语音交互
-            </Button>
-            <Button
-              type="default"
-              icon={<AudioOutlined />}
-              size="large"
-              shape="round"
               onClick={() => handleOpenVoiceDialog(null)}
               ghost
             >
-              快速语音对话
+              开始语音对话
             </Button>
           </Col>
         </Row>
@@ -247,39 +214,11 @@ const HomePage = () => {
         </Row>
       )}
 
-      {/* 完整语音交互流程模态框 */}
-      <Modal
-        title="完整语音交互流程"
-        open={isVoiceFlowOpen}
-        onCancel={handleCloseVoiceFlow}
-        footer={null}
-        width={800}
-        destroyOnClose
-      >
-        <VoiceInterface
-          onResult={handleVoiceFlowResult}
-          onError={handleVoiceFlowError}
-          mode="full"
-          showProgress={true}
-        />
-      </Modal>
-
-      {/* 简化的语音对话框 */}
-      <Modal
-        title="快速语音对话"
-        open={isVoiceDialogOpen}
-        onCancel={handleCloseVoiceDialog}
-        footer={null}
-        width={600}
-        destroyOnClose
-      >
-        <VoiceInterface
-          onResult={handleVoiceFlowResult}
-          onError={handleVoiceFlowError}
-          mode="simple"
-          showProgress={false}
+      <VoiceDialog 
+        isOpen={isVoiceDialogOpen} 
+        onClose={handleCloseVoiceDialog} 
+        initialService={selectedService}
       />
-      </Modal>
     </HomeContainer>
   );
 };
