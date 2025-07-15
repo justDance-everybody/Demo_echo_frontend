@@ -274,9 +274,9 @@ npm run test:ci
 ## 🔗 相关链接
 
 - [GitHub仓库](https://github.com/justDance-everybody/Demo_echo_frontend)
-- [在线演示](https://demo.echo-ai.com)
+- [在线演示](https://demo.echo-ai.com) <!-- 待上线 -->
 - [问题反馈](https://github.com/justDance-everybody/Demo_echo_frontend/issues)
-- [开发者文档](https://docs.echo-ai.com)
+- [开发者文档](https://docs.echo-ai.com) <!-- 待完善 -->
 
 ## 🙏 致谢
 
@@ -285,8 +285,8 @@ npm run test:ci
 ---
 
 **开发团队**: Echo AI 开发团队  
-**最后更新**: 2025-01-06  
-**版本**: Dev0.1  
+**最后更新**: 2025-01-15  
+**版本**: Dev0.1 → 完整版  
 
 ---
 
