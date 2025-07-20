@@ -20,10 +20,7 @@ body {
 }
 
 /* 修复移动端100vh问题 */
-html,
-body,
-#root,
-.App {
+html, body, #root, .App {
   height: 100%;
 }
 
@@ -35,17 +32,4 @@ body,
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
-}
-
-/* 无障碍性样式 */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
+} 

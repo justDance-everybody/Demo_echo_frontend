@@ -160,16 +160,16 @@ const AddServiceForm = ({ onServiceAdded }) => {
     setIsTestSuccessful(false);
     setSaveError(null);
 
-    const {
-      serviceName,
-      serviceDescription,
-      platformType,
-      endpointUrl,
-      apiKey,
-      difyAppId,
-      cozeBotId,
+    const { 
+      serviceName, 
+      serviceDescription, 
+      platformType, 
+      endpointUrl, 
+      apiKey, 
+      difyAppId, 
+      cozeBotId, 
       userInputVar,
-      testInput
+      testInput 
     } = formData;
 
     let toolConfiguration = {
@@ -187,24 +187,24 @@ const AddServiceForm = ({ onServiceAdded }) => {
         app_id: difyAppId,
         user_input_variable: userInputVar || 'query',
       };
-      if (apiKey) toolConfiguration.authentication = { type: "bearer", token: apiKey };
+      if (apiKey) toolConfiguration.authentication = { type: "bearer", token: apiKey }; 
     } else if (platformType === 'coze') {
       toolConfiguration.coze_config = {
         bot_id: cozeBotId,
         user_input_variable: userInputVar || 'query',
       };
-      if (apiKey) toolConfiguration.authentication = { type: "bearer", token: apiKey };
+      if (apiKey) toolConfiguration.authentication = { type: "bearer", token: apiKey }; 
     } else if (platformType === 'http') {
       toolConfiguration.http_config = {
         user_input_variable: userInputVar || 'query',
       };
       if (apiKey) {
-        toolConfiguration.authentication = { type: "bearer", token: apiKey };
+        toolConfiguration.authentication = { type: "bearer", token: apiKey }; 
       }
     }
-
+    
     if (platformType === 'dify' || platformType === 'coze') {
-      if (endpointUrl) toolConfiguration.endpoint_config.url = endpointUrl;
+        if(endpointUrl) toolConfiguration.endpoint_config.url = endpointUrl;
     }
 
     const payload = {
@@ -215,15 +215,15 @@ const AddServiceForm = ({ onServiceAdded }) => {
     try {
       console.log("Testing with payload:", JSON.stringify(payload, null, 2));
       const response = await apiClient.testUnsavedDeveloperTool(payload);
-
-      if (response && response.success) {
-        setTestResult(JSON.stringify(response.raw_response || response, null, 2));
+      
+      if (response.data && response.data.success) {
+        setTestResult(JSON.stringify(response.data.data || response.data, null, 2));
         setIsTestSuccessful(true);
-        toast.success(response.message || 'API Test successful!');
+        toast.success(response.data.message || 'API Test successful!');
       } else {
-        setTestResult(JSON.stringify(response || { error: "Test failed with non-success response" }, null, 2));
+        setTestResult(JSON.stringify(response.data || { error: "Test failed with non-success response" }, null, 2));
         setIsTestSuccessful(false);
-        toast.error(response.message || response.error || 'API Test failed. Check configuration.');
+        toast.error(response.data.message || 'API Test failed. Check configuration.');
       }
 
     } catch (error) {
@@ -243,14 +243,14 @@ const AddServiceForm = ({ onServiceAdded }) => {
     }
     setSaveError(null); // Clear previous save errors before attempting to save
 
-    const {
-      serviceName,
-      serviceDescription,
-      platformType,
-      endpointUrl,
-      apiKey,
-      difyAppId,
-      cozeBotId,
+    const { 
+      serviceName, 
+      serviceDescription, 
+      platformType, 
+      endpointUrl, 
+      apiKey, 
+      difyAppId, 
+      cozeBotId, 
       userInputVar,
       documentation // This comes from formData
     } = formData;
@@ -293,31 +293,32 @@ const AddServiceForm = ({ onServiceAdded }) => {
     // If it IS the base URL, this is fine.
     // For now, `endpointUrl` is included in `endpoint_config` if provided.
     if (!endpointUrl && (platformType === 'dify' || platformType === 'coze')) {
-      // If endpointUrl is truly optional and not provided for Dify/Coze, 
-      // we might want to remove `url` from `endpoint_config` or send it as empty.
-      // The current structure sends it as `formData.endpointUrl` which could be an empty string.
-      // Let's ensure endpoint_config.url is only set if endpointUrl has a value.
-      if (formData.endpointUrl) {
-        serviceDataPayload.endpoint_config.url = formData.endpointUrl;
-      } else {
-        delete serviceDataPayload.endpoint_config.url; // Or set to null, depending on backend
-      }
+        // If endpointUrl is truly optional and not provided for Dify/Coze, 
+        // we might want to remove `url` from `endpoint_config` or send it as empty.
+        // The current structure sends it as `formData.endpointUrl` which could be an empty string.
+        // Let's ensure endpoint_config.url is only set if endpointUrl has a value.
+        if (formData.endpointUrl) {
+             serviceDataPayload.endpoint_config.url = formData.endpointUrl;
+        } else {
+            delete serviceDataPayload.endpoint_config.url; // Or set to null, depending on backend
+        }
     }
 
     try {
       console.log("Attempting to save service with payload:", JSON.stringify(serviceDataPayload, null, 2));
       const response = await apiClient.createDeveloperService(serviceDataPayload);
-
-      // createDeveloperService returns response.data directly, so we check response.message
-      if (response && response.message) {
-        toast.success(response.message);
+      
+      // Check for successful status codes (200 OK or 201 Created)
+      // Also, some APIs might return success messages in response.data.message or response.data.detail
+      if (response && (response.status === 200 || response.status === 201)) {
+        toast.success(response.data?.message || response.data?.detail || '服务已成功保存！');
         if (typeof onServiceAdded === 'function') {
-          onServiceAdded(); // Callback to refresh the list in the parent component
+            onServiceAdded(); // Callback to refresh the list in the parent component
         }
         handleClearForm(); // Clear the form fields
       } else {
-        // This case handles scenarios where the response indicates a logical error.
-        const errorMsg = response?.error || response?.detail || '保存服务失败，但服务器未返回明确错误信息。';
+        // This case handles scenarios where the server returns a 2xx status but indicates a logical error in the response body.
+        const errorMsg = response.data?.detail || response.data?.message || '保存服务失败，但服务器未返回明确错误信息。';
         setSaveError(errorMsg);
         toast.error(errorMsg);
       }
@@ -364,7 +365,7 @@ const AddServiceForm = ({ onServiceAdded }) => {
         {formData.platformType === 'dify' && <small>对于Dify, 通常是 <code>https://api.dify.ai/v1/chat-messages</code> 或类似对话完成的端点。</small>}
         {formData.platformType === 'coze' && <small>对于Coze, 通常是 <code>https://api.coze.com/open_api/v2/chat</code> 端点。</small>}
       </FormGroup>
-
+      
       <FormGroup>
         <label htmlFor="apiKey">API 密钥/Token*</label>
         <input type="password" id="apiKey" name="apiKey" value={formData.apiKey} onChange={handleChange} required />
@@ -389,7 +390,7 @@ const AddServiceForm = ({ onServiceAdded }) => {
           </FormGroup>
         </ConditionalFieldsWrapper>
       )}
-
+      
       <FormGroup>
         <label htmlFor="userInputVar">用户输入字段名*</label>
         <input type="text" id="userInputVar" name="userInputVar" value={formData.userInputVar} onChange={handleChange} required />
@@ -409,17 +410,17 @@ const AddServiceForm = ({ onServiceAdded }) => {
       <TestSection>
         <h4>接口测试区</h4>
         <FormGroup>
-          <label htmlFor="testInput">测试输入内容:</label>
-          <input type="text" id="testInput" name="testInput" value={formData.testInput} onChange={handleChange} placeholder="输入测试文本..." disabled={isTesting} />
-          <PrimaryButton onClick={handleTestService} style={{ marginTop: '0.5rem' }} disabled={isTesting}>
-            {isTesting ? '正在测试...' : '发送测试请求'}
-          </PrimaryButton>
+            <label htmlFor="testInput">测试输入内容:</label>
+            <input type="text" id="testInput" name="testInput" value={formData.testInput} onChange={handleChange} placeholder="输入测试文本..." disabled={isTesting} />
+            <PrimaryButton onClick={handleTestService} style={{marginTop: '0.5rem'}} disabled={isTesting}>
+              {isTesting ? '正在测试...' : '发送测试请求'}
+            </PrimaryButton>
         </FormGroup>
         <FormGroup>
-          <label>测试响应:</label>
-          <TestResultArea>
-            {testResult}
-          </TestResultArea>
+            <label>测试响应:</label>
+            <TestResultArea>
+                {testResult}
+            </TestResultArea>
         </FormGroup>
       </TestSection>
 

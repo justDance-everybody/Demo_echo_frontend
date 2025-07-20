@@ -5,10 +5,7 @@ describe('MainPage - 基于前端开发文档验收标准', () => {
         cy.clearLocalStorageForTest();
 
         // 模拟已登录状态
-        cy.window().then((win) => {
-            win.localStorage.setItem('token', 'fake-jwt-token-string');
-            win.localStorage.setItem('userRole', 'user');
-        });
+        cy.setupAuth('user');
 
         // 访问首页
         cy.visit('/');

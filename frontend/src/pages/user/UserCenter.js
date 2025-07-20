@@ -18,7 +18,7 @@ import {
 } from 'antd-mobile-icons';
 import styled from 'styled-components';
 import { AuthContext } from '../../contexts/AuthContext';
-import { ThemeContext } from '../../contexts/ThemeContext';
+import { ThemeContext } from '../../theme/ThemeProvider';
 
 const UserCenterContainer = styled.div`
   display: flex;
@@ -82,7 +82,7 @@ const UserCenter = () => {
     const result = await Dialog.confirm({
       content: '确定要退出登录吗？',
     });
-
+    
     if (result) {
       logout();
       Toast.show({
@@ -98,7 +98,7 @@ const UserCenter = () => {
       <NavBar onBack={() => navigate('/')} backArrow={true}>
         个人中心
       </NavBar>
-
+      
       <UserHeader>
         <UserAvatar src={user?.avatar || ''}>
           {!user?.avatar && <UserOutline fontSize={40} />}
@@ -106,56 +106,56 @@ const UserCenter = () => {
         <Username>{user?.username || '用户'}</Username>
         <UserEmail>{user?.email || 'user@example.com'}</UserEmail>
       </UserHeader>
-
+      
       <SettingsList header='设置'>
-        <List.Item
-          prefix={<SoundOutline />}
+        <List.Item 
+          prefix={<SoundOutline />} 
           onClick={() => navigate('/settings/voice')}
           arrow={true}
-          description="调整语音识别和语音合成参数"
         >
           语音设置
+          <List.Item.Description>调整语音识别和语音合成参数</List.Item.Description>
         </List.Item>
-
-        <List.Item
+        
+        <List.Item 
           prefix={<SetOutline />}
           onClick={toggleTheme}
-          extra={theme?.isDark ? '深色' : '浅色'}
-          description="切换浅色/深色主题"
+          extra={theme === 'light' ? '浅色' : '深色'}
         >
           主题模式
+          <List.Item.Description>切换浅色/深色主题</List.Item.Description>
         </List.Item>
-
-        <List.Item
+        
+        <List.Item 
           prefix={<LockOutline />}
           onClick={() => navigate('/settings/security')}
           arrow={true}
-          description="修改密码、绑定手机"
         >
           账户安全
+          <List.Item.Description>修改密码、绑定手机</List.Item.Description>
         </List.Item>
-
-        <List.Item
+        
+        <List.Item 
           prefix={<MessageOutline />}
           onClick={() => navigate('/settings/notifications')}
           arrow={true}
-          description="设置消息提醒方式"
         >
           消息通知
+          <List.Item.Description>设置消息提醒方式</List.Item.Description>
         </List.Item>
-
-        <List.Item
+        
+        <List.Item 
           prefix={<GlobalOutline />}
           onClick={() => navigate('/settings/language')}
           arrow={true}
-          description="切换界面语言"
         >
           语言设置
+          <List.Item.Description>切换界面语言</List.Item.Description>
         </List.Item>
       </SettingsList>
-
-      <LogoutButton
-        block
+      
+      <LogoutButton 
+        block 
         color='danger'
         size='large'
         onClick={handleLogout}

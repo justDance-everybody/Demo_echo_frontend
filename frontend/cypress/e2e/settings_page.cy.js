@@ -15,11 +15,13 @@ describe('Settings Page - Complete Theme Functionality', () => {
     };
 
     beforeEach(() => {
+        // 清理localStorage，确保测试环境纯净
+        cy.clearLocalStorageForTest();
+        // 设置认证状态
+        cy.setupAuth('user');
         // 访问设置页面
         cy.visit('/settings');
         cy.injectAxe(); // Inject axe-core for accessibility testing
-        // 清理localStorage，确保测试环境纯净
-        cy.clearLocalStorageForTest();
 
         // 等待页面加载
         cy.contains('h1', '设置').should('be.visible');

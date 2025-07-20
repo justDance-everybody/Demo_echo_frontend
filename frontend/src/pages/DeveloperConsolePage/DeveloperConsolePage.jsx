@@ -98,7 +98,7 @@ const DeveloperConsolePage = () => {
     setError(null);
     try {
       // apiClient should be configured to send auth token if required by the backend for /api/dev/tools
-      const response = await apiClient.get('/api/dev/tools');
+      const response = await apiClient.get('/api/dev/tools'); 
       setTools(response.data.tools || []);
     } catch (err) {
       console.error("Failed to fetch developer tools:", err);
@@ -109,7 +109,7 @@ const DeveloperConsolePage = () => {
 
   useEffect(() => {
     if (user && user.role === 'developer') { // Ensure user is a developer before fetching
-      fetchDeveloperTools();
+        fetchDeveloperTools();
     }
   }, [user]); // Refetch if user changes, though role change during session is unlikely
 
@@ -121,7 +121,7 @@ const DeveloperConsolePage = () => {
     const newStatus = currentStatus === 'enabled' ? 'disabled' : 'enabled';
     try {
       const response = await apiClient.put(`/api/dev/tools/${toolId}`, { status: newStatus });
-      setTools(prevTools =>
+      setTools(prevTools => 
         prevTools.map(tool => tool.tool_id === toolId ? { ...tool, status: newStatus } : tool)
       );
       // TODO: Add Toast notification for success
@@ -179,16 +179,13 @@ const DeveloperConsolePage = () => {
         <h1>开发者控制台</h1>
         {/* AddToolButton is removed */}
       </div>
-
+      
       <AddServiceForm onServiceAdded={handleServiceAdded} />
 
       <h2>已上传的服务</h2>
       {error && <p style={{ color: 'red' }}>列表更新错误: {error}</p>} {/* Show list-specific error here */}
       {isLoading && tools.length === 0 && <p>正在加载列表...</p>} {/* Show loading only if tools aren't there yet */}
       {!isLoading && tools.length === 0 && !error && (
-        <p>您还没有上传任何工具。</p>
-      )}
-      {!isLoading && tools.length > 0 && (
         <ToolList>
           {tools.map(tool => (
             <ToolListItem key={tool.tool_id}>
@@ -203,7 +200,7 @@ const DeveloperConsolePage = () => {
               </div>
               <ActionsContainer>
                 <EditButton onClick={() => handleEditTool(tool.tool_id)}>编辑</EditButton>
-                <ToggleStatusButton
+                <ToggleStatusButton 
                   onClick={() => handleToggleStatus(tool.tool_id, tool.status)}
                   disabled={tool.status === 'disabled'} // Style prop for color based on disabled status
                 >
