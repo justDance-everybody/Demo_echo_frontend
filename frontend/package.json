@@ -64,6 +64,5 @@
     "transformIgnorePatterns": [
       "/node_modules/(?!axios)/"
     ]
-  },
-  "homepage": "https://lacematrix.github.io/Demo_echo_frontend"
+  }
 }
