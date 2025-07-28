@@ -1,321 +1,512 @@
+:root {
+    --color-primary: #4FD1C5;
+    --color-background: #1E1E2F;
+    --color-text: #F8F8F8;
+    --color-card-bg: rgba(45, 45, 65, 0.6);
+    --border-radius: 16px;
+    --font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
 .main-page-container {
-  display: flex;
-  flex-direction: column;
-  height: 100vh; /* Full viewport height */
-  background-color: var(--color-background); /* Dark background */
-  color: var(--color-text); /* Light text */
-  padding: 0;
-  margin: 0;
-  box-sizing: border-box;
-  position: relative;
-  overflow: hidden;
+    /* 主容器固定定位，直接覆盖整个视口，避免页面滚动 */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    /* Fix height so the page always fills the viewport and avoid extra scroll */
+    height: 100vh;
+    min-height: 100vh; /* safeguard for legacy browsers */
+    /* Use the dynamic background variable so it follows current theme */
+    background-color: var(--background);
+    color: var(--color-text);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    overflow: hidden;
+    font-family: var(--font-main);
 }
 
-.main-content-wrapper {
-  display: flex;
-  flex: 1;
-  position: relative;
-  overflow: hidden;
+/* Energy Core Styles */
+.energy-core-container {
+    position: relative;
+    width: 100%;
+    height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
 }
 
-/* 侧边栏样式 */
-.sidebar {
-  width: var(--sidebar-width);
-  background-color: var(--color-surface-secondary);
-  height: 100%;
-  position: absolute;
-  left: 0;
-  top: 0;
-  z-index: var(--z-index-sidebar);
-  box-shadow: var(--shadow-md);
-  padding: var(--spacing-lg);
-  overflow-y: auto;
+.energy-core {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--color-primary), transparent 60%);
+    transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+    filter: blur(5px);
+    opacity: 0.7;
+    z-index: 1;
 }
 
-.sidebar h2 {
-  color: var(--color-primary);
-  margin-bottom: var(--spacing-lg);
-  text-align: center;
-  font-size: var(--font-size-lg);
+.energy-core.idle {
+    animation: core-breathe 5s infinite ease-in-out;
 }
 
-.tools-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
+.energy-core.listening {
+    animation: core-listen 1.2s infinite cubic-bezier(0.45, 0.05, 0.55, 0.95);
+    background: radial-gradient(circle, var(--color-primary), transparent 70%);
+    filter: blur(8px);
 }
 
-.tool-item {
-  background-color: var(--color-surface-tertiary);
-  border-radius: var(--border-radius-lg);
-  padding: var(--spacing-md);
-  cursor: pointer;
-  transition: var(--transition-default);
+.energy-core.thinking {
+    animation: core-spin 2s infinite linear;
+    transform-origin: center;
+    background: conic-gradient(from 0deg, transparent, var(--color-primary));
+    filter: blur(10px);
+    width: 120px;
+    height: 120px;
 }
 
-.tool-item:hover {
-  transform: var(--transform-translate-hover-sm);
-  box-shadow: var(--shadow-lg);
-  border-left: var(--border-width-md) solid var(--color-primary);
+.energy-core.confirming {
+    transform: scale(3);
+    filter: blur(25px);
+    opacity: 0.5;
+    background: radial-gradient(circle, var(--color-primary), transparent 50%);
 }
 
-.tool-item h3 {
-  margin: 0 0 var(--spacing-xs) 0;
-  color: var(--color-text);
-  font-size: var(--font-size-md);
+.energy-core.executing {
+    animation: core-spin 2s infinite linear;
+    transform-origin: center;
+    background: conic-gradient(from 0deg, transparent, var(--color-primary));
+    filter: blur(10px);
+    width: 120px;
+    height: 120px;
 }
 
-.tool-item p {
-  margin: 0;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
+.energy-core.speaking {
+    animation: core-pulse 2s infinite ease-in-out;
+    background: radial-gradient(circle, var(--color-primary), transparent 65%);
+    filter: blur(15px);
 }
 
-/* 工具元信息样式 */
-.tool-meta {
-  display: flex;
-  justify-content: space-between;
-  margin-top: var(--spacing-xs);
-  font-size: var(--font-size-xs);
+.energy-core.done {
+    transform: scale(0);
+    opacity: 0;
 }
 
-.tool-type {
-  background-color: var(--color-primary);
-  color: var(--color-on-primary);
-  padding: var(--spacing-xxs) var(--spacing-xs);
-  border-radius: var(--border-radius-full);
-  font-weight: var(--font-weight-medium);
+.energy-core.error {
+    background: radial-gradient(circle, #FF5252, transparent 60%);
+    animation: core-error 1s infinite ease-in-out;
 }
 
-.tool-source {
-  background-color: var(--color-secondary);
-  color: var(--color-on-secondary);
-  padding: var(--spacing-xxs) var(--spacing-xs);
-  border-radius: var(--border-radius-full);
-  font-weight: var(--font-weight-medium);
+/* Status Text */
+.status-text {
+    position: static; /* now flows inside voice-recorder-container */
+    margin-bottom: 4px; /* closer to voice recorder button */
+    font-size: 1rem;
+    color: #a0aec0;
+    text-align: center;
+    transition: all 0.5s ease;
+    font-weight: 500;
+    white-space: nowrap;
 }
 
-/* 侧边栏切换按钮 */
-.sidebar-toggle-btn {
-  position: absolute;
-  top: var(--spacing-md);
-  left: var(--spacing-md);
-  z-index: var(--z-index-overlay);
-  width: var(--button-size-md);
-  height: var(--button-size-md);
-  border-radius: var(--border-radius-full);
-  background-color: var(--color-primary);
-  color: var(--color-on-primary);
-  border: none;
-  font-size: var(--font-size-xl);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: var(--shadow-md);
-  transition: var(--transition-default);
+/* Confirmation Card */
+.confirmation-card {
+    position: absolute;
+    top: 30%;
+    transform: translate(-50%, -50%);
+    width: 85%;
+    max-width: 400px;
+    padding: 24px;
+    background: var(--color-card-bg);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border-radius: var(--border-radius);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    z-index: 10;
 }
 
-.sidebar-toggle-btn:hover {
-  transform: var(--transform-scale-hover);
+.confirmation-card .icon {
+    font-size: 40px;
+    margin-bottom: 8px;
 }
 
-/* 主内容区域 */
-.content-area {
-  flex: 1;
-  height: 100%;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: center;
-  padding: var(--spacing-xxl) var(--spacing-lg) var(--spacing-xxxl) var(--spacing-lg);
-  overflow-y: auto;
-  position: relative;
+.confirmation-card .title {
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: var(--color-text);
+    margin: 0;
 }
 
-/* 消息容器 */
+.confirmation-card .description {
+    font-size: 1rem;
+    color: #a0aec0;
+    text-align: center;
+    margin: 8px 0 16px;
+}
+
+/* Button Styles */
+.action-buttons {
+    display: flex;
+    width: 100%;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.action-button {
+    flex-grow: 1;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: var(--font-main);
+}
+
+.confirm-button {
+    background-color: var(--color-primary);
+    color: var(--color-background);
+}
+
+.cancel-button {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--color-text);
+}
+
+/* Voice Recorder Container */
+.voice-recorder {
+    position: absolute; /* follow main-page-container scrolling */
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 4;
+    display: flex; /* allow stacking status text above button */
+    flex-direction: column;
+    align-items: center;
+    padding: 60px; /* override padding from VoiceRecorder.css */
+}
+
+/* Custom Voice Recorder Button */
+.voice-recorder-button {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(79, 209, 197, 0.3);
+}
+
+.voice-recorder-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(79, 209, 197, 0.4);
+}
+
+.voice-recorder-button.listening {
+    animation: button-pulse 1.5s infinite;
+}
+
+/* Messages Container */
 .messages-container {
-  width: 100%;
-  max-width: var(--content-max-width);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-lg);
+    position: absolute;
+    width: 100%;
+    /* 将顶距调整为离手机框顶部约 80px，使消息更靠上 */
+    top: 80px;
+    /* 与录音按钮保持距离，避免遮挡 */
+    bottom: 140px;
+    padding: 0 20px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto; /* 允许内部滚动 */
+    scrollbar-width: thin;
 }
 
-/* 用户语音文本样式 */
+/* 隐藏默认滚动条（WebKit） */
+.messages-container::-webkit-scrollbar {
+    width: 8px; /* 稍宽以便点击 */
+}
+
+.messages-container::-webkit-scrollbar-track {
+    background: transparent; /* 保持透明，去掉边框 */
+}
+
+.messages-container::-webkit-scrollbar-thumb {
+    /* 使用主题主色的轻微透明作为颜色 */
+    background-color: rgba(79, 209, 197, 0.35);
+    border-radius: 9999px; /* 完全圆角 */
+    border: none; /* 移除可能的边框 */
+}
+
+.messages-container::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(79, 209, 197, 0.6);
+}
+
+/* Firefox (仅颜色、粗细可控) */
+.messages-container {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(79, 209, 197, 0.35) transparent;
+}
+
+.message {
+    background: var(--color-card-bg);
+    border-radius: var(--border-radius);
+    padding: 16px;
+    margin: 0; /* reset margin since we now use gap */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    opacity: 0;
+    animation: message-fade-in 0.3s forwards;
+    max-width: 80%; /* NEW: limit width for bubble feel */
+    word-break: break-word;
+    position: relative; /* for bubble tail */
+    /* 添加柔和阴影增强立体感 */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+/* Chat bubble styles */
 .user-message {
-  background-color: #2A2A40;
-  padding: 15px;
-  border-radius: 8px;
-  margin: 5px 0;
-  align-self: flex-start;
-  max-width: 80%;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  border-left: 4px solid #4FD1C5;
+    align-self: flex-start; /* Left align */
+    /* 使用主色渐变气泡并增强可读性 */
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light, #B2F5EA) 100%);
+    color: var(--color-background);
+    border: none; /* override previous border */
+    border-bottom-left-radius: 4px;
+    border-top-left-radius: var(--border-radius);
+    /* 新增：自定义动画，使用户消息从左侧滑入 */
+    animation: slideInLeft 0.35s both;
 }
 
-/* AI响应文本样式 */
+.user-message::after {
+    content: "";
+    position: absolute;
+    left: -8px;
+    bottom: 8px;
+    border-width: 8px 8px 8px 0;
+    border-style: solid;
+    border-color: transparent var(--color-primary) transparent transparent;
+}
+
 .system-message {
-  background-color: #343450;
-  padding: 15px;
-  border-radius: 8px;
-  margin: 5px 0;
-  align-self: flex-end;
-  max-width: 80%;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  border-left: 4px solid #8C54FF;
+    align-self: flex-end; /* Right align */
+    /* 使用卡片色渐变并添加阴影 */
+    background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, var(--color-card-bg) 100%);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    color: var(--color-text);
+    border: none; /* override previous border */
+    border-bottom-right-radius: 4px;
+    border-top-right-radius: var(--border-radius);
+    /* 新增：自定义动画，使系统消息从右侧滑入 */
+    animation: slideInRight 0.35s both;
 }
 
-.message-header {
-  color: #4FD1C5;
-  font-size: 14px;
-  margin-bottom: 5px;
-  opacity: 0.8;
+.system-message::after {
+    content: "";
+    position: absolute;
+    right: -8px;
+    bottom: 8px;
+    border-width: 8px 0 8px 8px;
+    border-style: solid;
+    border-color: transparent transparent transparent var(--color-card-bg);
 }
 
-.message-content {
-  font-size: var(--font-size-md);
-  line-height: var(--line-height-relaxed);
-  color: var(--color-text);
-  text-shadow: 0 0 1px rgba(0,0,0,0.3);
-  letter-spacing: 0.02em;
-  font-weight: var(--font-weight-normal);
+/* Ensure bubble tails adapt in dark/light */
+@media (prefers-color-scheme: dark) {
+    .system-message::after {
+        border-color: transparent transparent transparent var(--color-card-bg);
+    }
 }
 
-/* 结果容器 */
-.result-container {
-  width: 100%;
-  max-width: var(--content-max-width);
-  margin: var(--spacing-sm) 0;
-}
-
-/* 语音录制按钮容器 */
-.voice-recorder-container {
-  position: fixed;
-  bottom: var(--spacing-lg);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: var(--z-index-overlay);
-}
-
-/* 录音按钮样式 */
-.recorder-button {
-  width: var(--button-size-xl);
-  height: var(--button-size-xl);
-  border-radius: var(--border-radius-full);
-  background-color: var(--color-primary);
-  color: var(--color-on-primary);
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-bold);
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: var(--shadow-lg);
-  transition: var(--transition-default);
-}
-
-.recorder-button:hover {
-  transform: var(--transform-scale-hover);
-  box-shadow: var(--shadow-xl);
-}
-
-.recorder-button.listening {
-  animation: pulse 1.5s infinite;
-  background-color: var(--color-error);
-}
-
-@keyframes pulse {
-  0% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(255, 82, 82, 0.7);
-  }
-  70% {
-    transform: scale(1);
-    box-shadow: 0 0 0 15px rgba(255, 82, 82, 0);
-  }
-  100% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(255, 82, 82, 0);
-  }
-}
-
-/* 重置按钮 */
+/* Reset Button */
 .reset-button {
-  margin-top: var(--spacing-lg);
-  margin-bottom: var(--spacing-lg);
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border-radius: var(--border-radius-lg);
-  background-color: var(--color-primary);
-  color: var(--color-on-primary);
-  border: none;
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
-  box-shadow: var(--shadow-md);
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    background: var(--color-card-bg);
+    border: 1px solid var(--color-primary);
+    color: var(--color-text);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    z-index: 4;
+    transition: all 0.3s ease;
+    font-family: var(--font-main);
 }
 
-/* 响应式调整 */
+.reset-button:hover {
+    background: var(--color-primary);
+    color: var(--color-background);
+}
+
+/* Clear History Button */
+.clear-history-button {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    padding: 8px 16px;
+    background: var(--nav-bg, var(--surface));
+    color: var(--text);
+    border: 1px solid var(--color-primary);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    z-index: 4;
+    transition: all 0.3s ease;
+}
+
+.clear-history-button:hover {
+    background: var(--color-primary);
+    color: var(--text);
+}
+
+/* Animations */
+@keyframes core-breathe {
+    0%, 100% { transform: scale(1); opacity: 0.7; }
+    50% { transform: scale(1.1); opacity: 1; }
+}
+
+@keyframes core-listen {
+    0%, 100% { transform: scale(1.2); }
+    50% { transform: scale(0.9); }
+}
+
+@keyframes core-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes core-pulse {
+    0%, 100% { transform: scale(1); opacity: 0.7; }
+    50% { transform: scale(1.15); opacity: 0.9; }
+}
+
+@keyframes core-error {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); filter: blur(20px); }
+}
+
+@keyframes button-pulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(79, 209, 197, 0.4); }
+    70% { transform: scale(1.1); box-shadow: 0 0 0 20px rgba(79, 209, 197, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(79, 209, 197, 0); }
+}
+
+@keyframes message-fade-in {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+/* 新增左右滑入动画 */
+@keyframes slideInLeft {
+    0%   { opacity: 0; transform: translateX(-60px) scale(0.95); }
+    60%  { opacity: 1; transform: translateX(10px)  scale(1.02); }
+    100% { opacity: 1; transform: translateX(0)    scale(1);    }
+}
+
+@keyframes slideInRight {
+    0%   { opacity: 0; transform: translateX(60px) scale(0.95); }
+    60%  { opacity: 1; transform: translateX(-10px) scale(1.02); }
+    100% { opacity: 1; transform: translateX(0)     scale(1);    }
+}
+
+/* Mobile Optimization */
 @media (max-width: 768px) {
-  .sidebar {
-    width: 80%;
-    max-width: 300px;
-  }
-  
-  .user-message, .system-message {
-    max-width: 90%;
-  }
-  
-  .voice-recorder-container {
-    bottom: 15px;
-  }
-  
-  .content-area {
-    padding: 60px 15px 90px 15px;
-  }
+    .energy-core-container {
+        height: 240px;
+    }
+
+    .energy-core {
+        width: 80px;
+        height: 80px;
+    }
+
+    .status-text {
+        font-size: 1rem;
+        bottom: -32px;
+    }
+
+    .confirmation-card {
+        width: 90%;
+        padding: 20px;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+
+    .action-button {
+        width: 100%;
+    }
+
+    .messages-container {
+        top: 320px;
+        padding: 0 16px;
+    }
+
+    .voice-recorder {
+        bottom: 30px;
+    }
+
+    .voice-recorder-button {
+        width: 56px;
+        height: 56px;
+    }
+
+    .clear-history-button {
+        padding: 6px 12px;
+        bottom: 16px;
+        left: 16px;
+        
+    }
 }
 
-/* 状态指示器样式 - 会在StatusBar组件中覆盖 */
-.status-bar-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: var(--header-height);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--color-surface-secondary);
-  color: var(--color-text);
-  z-index: var(--z-index-overlay);
-  box-shadow: var(--shadow-sm);
-  transition: var(--transition-default);
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --color-background: #1E1E2F;
+        --color-text: #F8F8F8;
+        --color-card-bg: rgba(45, 45, 65, 0.6);
+    }
 }
 
-.status-idle {
-  background-color: var(--color-surface-secondary);
+/* 新增手机框样式 */
+.phone-frame {
+    position: relative;
+    width: 375px;
+    height: 700px;
+    background-color: var(--nav-bg, var(--surface));
+    /* 边框颜色改为主题主色，随主题联动 */
+    border: 16px solid var(--color-primary);
+    border-radius: 40px;
+    box-shadow: 0 0 25px rgba(0, 0, 0, 0.5);
+    overflow: hidden; /* 限制内部溢出，防止整体滚动 */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
 }
 
-.status-listening {
-  background-color: var(--color-primary);
-  color: var(--color-on-primary);
-}
-
-.status-thinking {
-  background-color: var(--color-secondary);
-}
-
-.status-executing {
-  background-color: var(--color-warning);
-}
-
-.status-speaking {
-  background-color: var(--color-info);
-}
-
-.status-error {
-  background-color: var(--color-error);
+/* 在移动端隐藏手机框，仅保留内部内容 */
+@media (max-width: 768px) {
+    .phone-frame {
+        width: 100%;
+        height: 100%;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        padding: 0;
+    }
 }

@@ -133,22 +133,23 @@ const StyleEditor = () => {
   
   // 重置为默认值
   const resetToDefault = () => {
-    const defaultVariables = {
-      '--primary-color': theme.isDark ? '#4FD1C5' : '#38B2AC',
-      '--secondary-color': theme.isDark ? '#805AD5' : '#6B46C1',
-      '--text-color': theme.isDark ? '#F8F8F8' : '#1A202C',
-      '--background': theme.isDark ? '#1E1E2F' : '#FFFFFF',
-      '--surface': theme.isDark ? '#27293D' : '#F7FAFC',
-      '--border-color': theme.isDark ? '#2D3748' : '#E2E8F0',
-    };
-    
-    // 更新所有变量
-    Object.entries(defaultVariables).forEach(([varName, value]) => {
-      updateThemeVariable(varName, value);
+    // 1. 移除之前通过 StyleEditor 写入的行内 CSS 变量覆盖，恢复 tokens.css 的默认控制
+    Object.keys(variables).forEach(varName => {
+      if (typeof document !== 'undefined') {
+        document.documentElement.style.removeProperty(varName);
+      }
     });
-    
-    // 更新状态
-    setVariables(defaultVariables);
+
+    // 2. 清除本地存储中的自定义主题配置，防止刷新后仍被重新应用
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('customTheme');
+    }
+
+    // 3. 重新从当前计算样式读取变量，刷新编辑器面板显示
+    const refreshed = Object.fromEntries(
+      Object.keys(variables).map(varName => [varName, getCssVar(varName)])
+    );
+    setVariables(refreshed);
   };
   
   return (

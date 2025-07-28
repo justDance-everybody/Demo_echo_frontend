@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // 从环境变量获取API配置
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://rqoufedpoguc.sealosgzg.site';
 const API_PREFIX = process.env.REACT_APP_API_PREFIX || '/api/v1';
 
 const api = axios.create({
@@ -162,10 +162,10 @@ const refreshToken = async () => {
 const interpret = async (transcript, sessionId, userId) => {
     try {
         console.log(`发送interpret请求，携带sessionId: ${sessionId}`);
-        const response = await api.post(`${API_PREFIX}/interpret`, {
+        const response = await api.post(`${API_PREFIX}/intent/interpret`, {
             query: transcript, 
-            sessionId: sessionId,
-            userId: userId,
+            session_id: sessionId,
+            user_id: userId,
         });
         console.log(`收到interpret响应:`, response.data);
         
@@ -181,6 +181,23 @@ const interpret = async (transcript, sessionId, userId) => {
          console.error('API call to interpret failed in function:', error);
          // Re-throw the processed error object from the interceptor
          throw error; 
+    }
+};
+
+const confirmExecution = async (sessionId, userInput) => {
+    try {
+        const response = await api.post(`${API_PREFIX}/intent/confirm`, {
+            session_id: sessionId,
+            user_input: userInput,
+        },
+        {
+            timeout: 100000,
+        }
+      );
+        return response.data;
+    } catch (error) {
+        console.error('API call to confirmExecution failed in function:', error);
+        throw error;
     }
 };
 
@@ -248,7 +265,7 @@ const getTools = async () => {
 const getToolById = async (toolId) => {
   try {
     console.log(`获取工具ID: ${toolId} 的详情`);
-    const response = await api.get(`${API_PREFIX}/tools/${toolId}`);
+    const response = await api.get(`${API_PREFIX}/dev/tools/${toolId}`);
     console.log("工具详情响应:", response.data);
     return response.data;
   } catch (error) {
@@ -265,7 +282,7 @@ const getDeveloperServices = async () => {
     console.log("获取开发者服务列表...");
     const response = await api.get(`${API_PREFIX}/dev/tools`);
     console.log("开发者服务列表响应:", response.data);
-    return response.data.services;
+    return response.data;
   } catch (error) {
     console.error('获取开发者服务列表失败:', error);
     throw error;
@@ -317,7 +334,7 @@ const deleteDeveloperService = async (serviceId) => {
     console.log(`删除开发者服务ID: ${serviceId}`);
     const response = await api.delete(`${API_PREFIX}/dev/tools/${serviceId}`);
     console.log("删除服务响应:", response.data);
-    return response.data;
+    return response;
   } catch (error) {
     console.error(`删除开发者服务ID: ${serviceId} 失败:`, error);
     throw error;
@@ -394,6 +411,19 @@ const testUnsavedDeveloperTool = async (toolConfiguration) => {
   } catch (error) {
     console.error('测试未保存的服务配置失败:', error);
     throw error; // Let the interceptor handle formatting the error
+  }
+};
+
+// 获取 MCP 服务器健康状态 (NEW)
+const getMcpHealth = async () => {
+  try {
+    console.log("获取服务器健康状态 /mcp/health ...");
+    const response = await api.get(`${API_PREFIX}/mcp/health`);
+    console.log("服务器健康状态响应:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("获取服务器健康状态失败:", error);
+    throw error;
   }
 };
 
@@ -489,6 +519,7 @@ const apiClientInstance = {
   // 核心AI功能（后端标准接口）
   interpret,
   execute,
+  confirmExecution,
   getTools,
   getToolById,
   
@@ -509,6 +540,8 @@ const apiClientInstance = {
   createDeveloperApplication,
   testSavedApiService,
   testUnsavedDeveloperTool,
+  // 新增导出
+  getMcpHealth,
 };
 
 export default apiClientInstance;
