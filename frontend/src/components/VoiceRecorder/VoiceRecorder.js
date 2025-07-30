@@ -51,10 +51,8 @@ const VoiceRecorder = ({ onResult, onError, setStatus, disabled }) => { // Added
                 console.log('Voice recognition ended (initial input).');
                 // Always reset the listening state when recognition ends
                 setIsListening(false);
-                // Optionally reset status to idle if needed
-                if (typeof setStatus === 'function') {
-                    setStatus(INTERACTION_STATES.IDLE);
-                }
+                // 不自动设置状态为IDLE，让父组件管理状态
+                // 状态会在handleVoiceResult中正确设置
             };
 
             // Store the configured recognition instance in state

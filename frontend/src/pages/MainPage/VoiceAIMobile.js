@@ -77,7 +77,7 @@ const VoiceAIMobile = () => {
       });
       
       console.log(`开始执行工具: ${toolId}, 参数:`, params);
-      const result = await apiClient.execute(toolId, params, sessionId, user?.id || 1);
+      const result = await apiClient.execute(sessionId, toolId, params, user?.id || 1);
       
       // 清除加载提示
       Toast.clear();

@@ -99,6 +99,10 @@
   --z-index-popover: 1060;
   --z-index-tooltip: 1070;
   
+  /* 布局尺寸 */
+  --content-max-width: 800px;
+  --sidebar-width: 280px;
+  
   /* 过渡时间 */
   --transition-fast: 150ms;
   --transition-normal: 300ms;

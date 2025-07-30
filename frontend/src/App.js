@@ -13,8 +13,15 @@ import NavBar from './components/NavBar';
 import ProtectedRoute from './components/ProtectedRoute';
 import UserCenter from './pages/user/UserCenter';
 import TestPage from './tests/TestPage';
+import ApiTestPage from './pages/ApiTestPage';
+import TestProgressBar from './pages/TestProgressBar';
 import DeveloperConsole from './pages/DeveloperConsolePage/DeveloperConsolePage';
 import './App.css';
+
+// 导入API测试工具（仅在开发环境）
+if (process.env.NODE_ENV === 'development') {
+  import('./services/apiTest');
+}
 
 function App() {
   return (
@@ -53,6 +60,8 @@ function App() {
                   </ProtectedRoute>
                 } />
                 <Route path="/test" element={<TestPage />} />
+                <Route path="/api-test" element={<ApiTestPage />} />
+                <Route path="/test-progress" element={<TestProgressBar />} />
                 <Route path="*" element={<div>页面不存在</div>} />
                 </Routes>
               </div>

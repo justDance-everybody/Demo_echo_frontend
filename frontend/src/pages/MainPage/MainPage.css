@@ -1,9 +1,9 @@
 .main-page-container {
   display: flex;
   flex-direction: column;
-  height: 100vh; /* Full viewport height */
-  background-color: var(--color-background); /* Dark background */
-  color: var(--color-text); /* Light text */
+  height: 100vh;
+  background-color: var(--color-background);
+  color: var(--color-text);
   padding: 0;
   margin: 0;
   box-sizing: border-box;
@@ -120,68 +120,147 @@
   transform: var(--transform-scale-hover);
 }
 
-/* 主内容区域 */
+/* 主内容区域 - 流式对话样式 */
 .content-area {
   flex: 1;
   height: 100%;
   width: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
+  justify-content: center; /* 改为居中对齐 */
   align-items: center;
   padding: var(--spacing-xxl) var(--spacing-lg) var(--spacing-xxxl) var(--spacing-lg);
   overflow-y: auto;
   position: relative;
 }
 
-/* 消息容器 */
-.messages-container {
+/* 流式对话容器 */
+.stream-container {
   width: 100%;
   max-width: var(--content-max-width);
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
-  margin-bottom: var(--spacing-lg);
+  max-height: calc(100vh - 200px); /* 留出底部空间给录音按钮 */
+  overflow-y: auto;
+  padding-bottom: var(--spacing-lg);
+  justify-content: flex-end; /* 对话内容靠底部，但容器居中 */
+  align-self: center; /* 确保容器本身居中 */
+  margin: 0 auto; /* 水平居中 */
+  min-height: 200px; /* 确保容器有最小高度 */
 }
 
-/* 用户语音文本样式 */
-.user-message {
-  background-color: #2A2A40;
-  padding: 15px;
-  border-radius: 8px;
-  margin: 5px 0;
-  align-self: flex-start;
-  max-width: 80%;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  border-left: 4px solid #4FD1C5;
+/* 空状态样式 */
+.stream-container:empty::before {
+  content: "开始您的对话...";
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-lg);
+  opacity: 0.6;
 }
 
-/* AI响应文本样式 */
-.system-message {
-  background-color: #343450;
-  padding: 15px;
-  border-radius: 8px;
-  margin: 5px 0;
-  align-self: flex-end;
-  max-width: 80%;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  border-left: 4px solid #8C54FF;
-}
-
-.message-header {
-  color: #4FD1C5;
-  font-size: 14px;
-  margin-bottom: 5px;
-  opacity: 0.8;
-}
-
-.message-content {
+/* 流式消息项样式 */
+.stream-item {
+  padding: 12px 16px;
+  border-radius: 16px;
+  max-width: 85%;
+  opacity: 0;
+  animation: stream-fade-in 0.8s forwards;
+  word-wrap: break-word;
+  line-height: 1.4;
   font-size: var(--font-size-md);
-  line-height: var(--line-height-relaxed);
+  position: relative;
+}
+
+@keyframes stream-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 用户消息样式 */
+.stream-item.user {
+  background: var(--color-primary);
+  color: var(--color-background);
+  align-self: flex-end;
+  margin-left: auto;
+  border-bottom-right-radius: 4px;
+  box-shadow: 0 2px 8px rgba(79, 209, 197, 0.3);
+}
+
+/* AI消息样式 */
+.stream-item.ai {
+  background-color: #2D3748;
   color: var(--color-text);
-  text-shadow: 0 0 1px rgba(0,0,0,0.3);
-  letter-spacing: 0.02em;
-  font-weight: var(--font-weight-normal);
+  align-self: flex-start;
+  margin-right: auto;
+  border-bottom-left-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 确认消息样式 */
+.stream-item.ai.confirm {
+  border: 2px solid var(--color-primary);
+  background-color: #4A5568;
+  box-shadow: 0 4px 12px rgba(79, 209, 197, 0.4);
+}
+
+/* 确认按钮容器 */
+.stream-item-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.stream-item-buttons button {
+  background: var(--color-primary);
+  color: var(--color-background);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  transition: all 0.3s ease;
+  min-width: 60px;
+}
+
+.stream-item-buttons button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(79, 209, 197, 0.4);
+}
+
+.stream-item-buttons button:active {
+  transform: translateY(0);
+}
+
+/* 取消按钮样式 */
+.stream-item-buttons .cancel-btn {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--color-text);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.stream-item-buttons .cancel-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* 消息时间戳 */
+.message-timestamp {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  margin-top: 4px;
+  opacity: 0.7;
 }
 
 /* 结果容器 */
@@ -258,27 +337,7 @@
   box-shadow: var(--shadow-md);
 }
 
-/* 响应式调整 */
-@media (max-width: 768px) {
-  .sidebar {
-    width: 80%;
-    max-width: 300px;
-  }
-  
-  .user-message, .system-message {
-    max-width: 90%;
-  }
-  
-  .voice-recorder-container {
-    bottom: 15px;
-  }
-  
-  .content-area {
-    padding: 60px 15px 90px 15px;
-  }
-}
-
-/* 状态指示器样式 - 会在StatusBar组件中覆盖 */
+/* 状态指示器样式 */
 .status-bar-container {
   position: fixed;
   top: 0;
@@ -318,4 +377,91 @@
 
 .status-error {
   background-color: var(--color-error);
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 80%;
+    max-width: 300px;
+  }
+  
+  .stream-item {
+    max-width: 90%;
+    font-size: var(--font-size-sm);
+    padding: 10px 14px;
+  }
+  
+  .voice-recorder-container {
+    bottom: 15px;
+  }
+  
+  .content-area {
+    padding: 60px 15px 90px 15px;
+    justify-content: center; /* 确保移动端也居中 */
+  }
+  
+  .stream-container {
+    max-height: calc(100vh - 180px);
+    justify-content: flex-end; /* 对话内容靠底部 */
+  }
+  
+  .stream-item-buttons {
+    gap: 8px;
+  }
+  
+  .stream-item-buttons button {
+    padding: 6px 12px;
+    font-size: var(--font-size-xs);
+  }
+}
+
+@media (max-width: 480px) {
+  .stream-item {
+    max-width: 95%;
+    font-size: var(--font-size-sm);
+    padding: 8px 12px;
+  }
+  
+  .content-area {
+    padding: 50px 10px 80px 10px;
+    justify-content: center; /* 确保小屏手机也居中 */
+  }
+  
+  .stream-container {
+    gap: var(--spacing-sm);
+  }
+  
+  .stream-item-buttons {
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .stream-item-buttons button {
+    width: 100%;
+    padding: 8px 12px;
+  }
+}
+
+/* 平板适配 */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .stream-item {
+    max-width: 80%;
+  }
+  
+  .content-area {
+    padding: 70px 20px 100px 20px;
+    justify-content: center; /* 确保平板也居中 */
+  }
+}
+
+/* 大屏幕适配 */
+@media (min-width: 1025px) {
+  .stream-container {
+    max-width: 800px;
+  }
+  
+  .stream-item {
+    max-width: 75%;
+  }
 }

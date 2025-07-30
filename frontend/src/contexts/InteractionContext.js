@@ -2,12 +2,13 @@ import React, { createContext, useContext, useReducer, useRef, useEffect } from 
 
 // 交互状态枚举
 export const INTERACTION_STATES = {
-  IDLE: 'IDLE',
-  LISTENING: 'LISTENING', 
-  THINKING: 'THINKING',
-  SPEAKING: 'SPEAKING',
-  CONFIRMING: 'CONFIRMING',
-  ERROR: 'ERROR'
+  IDLE: 'idle',
+  LISTENING: 'listening', 
+  THINKING: 'thinking',
+  SPEAKING: 'speaking',
+  CONFIRMING: 'confirming',
+  EXECUTING: 'executing',
+  ERROR: 'error'
 };
 
 // 动作类型

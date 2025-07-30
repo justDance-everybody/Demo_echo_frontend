@@ -276,7 +276,7 @@ const ConfirmationModal = ({
       }
     }
     
-  }, [isOpen, confirmText, isTTSSpeaking, cancelTTS, isSTTListening, speak, stopListening, useVoiceConfirmation, startListening, interactionState, handleStartVoiceListening, voiceCoordinator]);
+  }, [isOpen, confirmText, isTTSSpeaking, cancelTTS, isSTTListening, speak, stopListening, useVoiceConfirmation, startListening, interactionState, voiceCoordinator]);
   
 
   
@@ -289,7 +289,76 @@ const ConfirmationModal = ({
         console.log("ConfirmationModal: 语音确认模式，延迟启动语音识别");
         // 延迟启动语音识别，确保TTS完全停止
         const delayTimer = setTimeout(() => {
-          handleStartVoiceListening();
+          // 使用内联函数避免依赖问题
+          const startVoiceListening = async () => {
+            console.log("ConfirmationModal: 用户手动点击启动语音识别");
+            
+            // 防止重复启动或检查交互状态
+            if (isConfirmListening || interactionState === INTERACTION_STATES.TTS_SPEAKING) {
+              console.log("ConfirmationModal: 已在监听中或TTS正在播放，忽略重复启动");
+              return;
+            }
+            
+            setIsConfirmListening(true);
+            
+            let retryCount = 0;
+            const maxRetries = 3;
+            
+            const tryStartListening = async () => {
+              try {
+                // 确保先停止之前可能在进行的识别
+                await stopListening();
+                console.log("ConfirmationModal: 已停止之前的识别");
+                
+                // 短暂延迟后启动新的识别，防止冲突
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                if (interactionState !== INTERACTION_STATES.TTS_SPEAKING) {
+                  await startListening();
+                  console.log("ConfirmationModal: 语音识别已启动");
+                } else {
+                  console.log("ConfirmationModal: TTS正在播放，无法启动STT");
+                  setIsConfirmListening(false);
+                  // 如果无法启动语音识别，显示按钮
+                  setShowButtons(true);
+                }
+              } catch (e) {
+                  console.warn(`ConfirmationModal: 第${retryCount + 1}次启动失败:`, e.message);
+                  
+                  // 只在特定错误时重试，避免TTS冲突时的无效重试
+                  if (retryCount < maxRetries && e.message.includes('timeout') && !e.message.includes('TTS')) {
+                    retryCount++;
+                    console.log(`ConfirmationModal: 将在2秒后重试 (${retryCount}/${maxRetries})`);
+                    setTimeout(tryStartListening, 2000);
+                  } else {
+                    if (e.message.includes('TTS is currently active')) {
+                      console.log("ConfirmationModal: TTS正在活跃，稍后会自动处理");
+                    } else {
+                      console.error("ConfirmationModal: 启动语音识别最终失败:", e);
+                    }
+                    setIsConfirmListening(false);
+                    // 语音识别失败时，显示按钮供用户手动操作
+                    setShowButtons(true);
+                  }
+                }
+            };
+            
+            await tryStartListening();
+            
+            // 使用配置的超时时间自动停止语音识别并显示按钮，避免无限等待
+            const timeoutId = setTimeout(() => {
+              if (isConfirmListening) {
+                console.log("ConfirmationModal: 语音识别超时，显示操作按钮");
+                stopListening().catch(e => console.warn("停止监听时出错:", e));
+                setIsConfirmListening(false);
+                setShowButtons(true); // 超时后显示按钮
+              }
+            }, TIMEOUTS.VOICE_CONFIRM);
+            
+            return () => clearTimeout(timeoutId);
+          };
+          
+          startVoiceListening();
         }, TIMEOUTS.TTS_TO_STT_DELAY);
         
         return () => clearTimeout(delayTimer);
@@ -298,7 +367,7 @@ const ConfirmationModal = ({
         setShowButtons(true);
       }
     }
-  }, [ttsFinished, useVoiceConfirmation, isConfirmListening, isTTSSpeaking, handleStartVoiceListening, showButtons]);
+  }, [ttsFinished, useVoiceConfirmation, isConfirmListening, isTTSSpeaking, showButtons, interactionState, stopListening, startListening]);
   
   // 安全超时机制，确保即使TTS回调失败也会显示按钮
    useEffect(() => {
