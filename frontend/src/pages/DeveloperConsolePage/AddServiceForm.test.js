@@ -93,10 +93,11 @@ describe('AddServiceForm', () => {
       
       // Mock a successful test to change some state
       apiClient.testUnsavedDeveloperTool.mockResolvedValueOnce({ 
-        data: { success: true, data: { message: "Test success for clear" } } 
+        success: true,
+        raw_response: { message: "Test success for clear" }
       });
       await userEvent.click(screen.getByRole('button', { name: /发送测试请求/i }));
-      await waitFor(() => expect(screen.getByRole('button', {name: /保存服务/i})).toBeEnabled());
+      await waitFor(() => expect(screen.getByRole('button', {name: /保存服务/i})).toBeDisabled());
       expect(screen.getByText(/"message": "Test success for clear"/i)).toBeInTheDocument();
 
 
@@ -131,11 +132,9 @@ describe('AddServiceForm', () => {
       await testValidInput();
 
       const mockSuccessResponse = { 
-        data: { 
-          success: true, 
-          message: 'API Test successful!', 
-          data: { answer: 'Test response' } 
-        }
+        success: true,
+        message: 'API Test successful!',
+        raw_response: { answer: 'Test response' }
       };
       apiClient.testUnsavedDeveloperTool.mockResolvedValueOnce(mockSuccessResponse);
 
@@ -157,7 +156,6 @@ describe('AddServiceForm', () => {
       await waitFor(() => {
         expect(screen.getByText(/"answer": "Test response"/i)).toBeInTheDocument();
         expect(toast.success).toHaveBeenCalledWith('API Test successful!');
-        expect(screen.getByRole('button', { name: /保存服务/i })).toBeEnabled();
         expect(testButton).toBeEnabled();
         expect(testButton).toHaveTextContent('发送测试请求');
       });
@@ -196,11 +194,9 @@ describe('AddServiceForm', () => {
       await testValidInput('coze');
 
       const mockLogicErrorResponse = { 
-        data: { 
-          success: false, 
-          message: 'Configuration incorrect.', 
-          error_details: 'Invalid Coze Bot ID' 
-        }
+        success: false,
+        message: 'Configuration incorrect.',
+        error_details: 'Invalid Coze Bot ID'
       };
       apiClient.testUnsavedDeveloperTool.mockResolvedValueOnce(mockLogicErrorResponse);
 
@@ -222,7 +218,7 @@ describe('AddServiceForm', () => {
 
   describe('handleSaveService Functionality', () => {
     // Helper to fill form and simulate a successful test, making save button potentially enabled
-    const fillFormAndPassTest = async () => {
+    const fillFormWithRequiredFields = async () => {
       await userEvent.type(screen.getByLabelText(/服务名称/i), 'Final Service');
       await userEvent.type(screen.getByLabelText(/服务描述/i), 'This is the final service description.');
       await userEvent.selectOptions(screen.getByLabelText(/平台类型/i), 'http');
@@ -230,61 +226,19 @@ describe('AddServiceForm', () => {
       await userEvent.type(screen.getByLabelText(/API 密钥\/Token/i), 'final-api-key');
       await userEvent.type(screen.getByLabelText(/用户输入字段名/i), 'input');
       await userEvent.type(screen.getByLabelText(/说明文档/i), 'Final documentation here.');
-      await userEvent.type(screen.getByLabelText(/测试输入内容/i), 'Test input for final service');
-
-      apiClient.testUnsavedDeveloperTool.mockResolvedValueOnce({ 
-        data: { success: true, data: { message: "Test successful before save" } } 
-      });
-      await userEvent.click(screen.getByRole('button', { name: /发送测试请求/i }));
+      // No need to test now; save should become enabled when validateForm passes
       await waitFor(() => expect(screen.getByRole('button', { name: /保存服务/i })).toBeEnabled());
     };
 
-    it('should not call createDeveloperService and show warning if test was not successful', async () => {
-      renderForm();
-      // Fill some data but don't simulate a successful test
-      await userEvent.type(screen.getByLabelText(/服务名称/i), 'Untested Service');
-      
-      const saveButton = screen.getByRole('button', { name: /保存服务/i });
-      expect(saveButton).toBeDisabled(); // Should be disabled initially
-      
-      // Even if we could enable it, the internal state isTestSuccessful is false
-      // Let's try clicking it (though it's disabled, this is more for internal logic check if it somehow gets enabled without test pass)
-      // For a more direct test of the logic: if isTestSuccessful is false, it should warn.
-      // We can directly test the component's state if needed, or trust the disabled state reflects this.
-      // The `handleSaveService` explicitly checks `isTestSuccessful`.
-
-      // Simulate enabling it by force (not a real user scenario, but to test the guard)
-      // This is tricky as the disabled state is tied to isTestSuccessful.
-      // Instead, let's check that if isTestSuccessful is false (default), clicking save (if it were enabled) does right thing.
-      // The current implementation: save button is disabled if !isTestSuccessful. So direct click is not possible.
-      // The first line of handleSaveService is `if (!isTestSuccessful) { toast.warn(...); return; }`
-      // So we rely on the button being disabled as the primary guard for user interaction.
-      // We can, however, call the handler directly if we get a ref to the component instance, but that's not standard RTL practice.
-      
-      // Test the warning that should appear if save is attempted without successful test:
-      // To do this, we need to bypass the disabled state of the button to actually invoke handleSaveService
-      // For this test, it's simpler to assume the button being disabled *is* the test for this condition.
-      // Alternatively, if the button were enabled but isTestSuccessful was false:
-      // Let's mock isTestSuccessful to be false after a test (e.g. if test failed but button didn't re-disable)
-      // This scenario is less likely with current implementation.
-
-      // A simpler check for the explicit guard: just ensure save button is disabled if test hasn't passed.
-      expect(saveButton).toBeDisabled();
-
-      // If we want to ensure the toast.warn part of the guard is covered:
-      // This would require a scenario where the button IS enabled but isTestSuccessful is false.
-      // The current design correctly disables the button, so the guard `if (!isTestSuccessful)` inside handleSaveService
-      // acts as a secondary safety net, which is harder to trigger directly via userEvent on a disabled button.
-      // We'll assume the disabled state is sufficient for this test case as per current component logic.
-    });
+    // Remove obsolete test about requiring successful test before save
 
     it('should call createDeveloperService, call onServiceAdded, clear form, and show success on successful save', async () => {
       renderForm();
-      await fillFormAndPassTest();
+      await fillFormWithRequiredFields();
 
       const mockSaveResponse = { 
-        status: 201, // Or 200
-        data: { message: 'Service saved successfully!', tool_id: 'new-tool-123' } 
+        created_at: '2025-07-28T10:00:00Z',
+        tool_id: 'new-tool-123'
       };
       apiClient.createDeveloperService.mockResolvedValueOnce(mockSaveResponse);
 
@@ -294,11 +248,11 @@ describe('AddServiceForm', () => {
         expect(apiClient.createDeveloperService).toHaveBeenCalledTimes(1);
         expect(apiClient.createDeveloperService).toHaveBeenCalledWith(expect.objectContaining({
           name: 'Final Service',
-          platform_type: 'http',
+          description: 'This is the final service description.',
           documentation: 'Final documentation here.'
         }));
         expect(mockOnServiceAdded).toHaveBeenCalledTimes(1);
-        expect(toast.success).toHaveBeenCalledWith('Service saved successfully!');
+        expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('服务已保存成功'));
         expect(screen.getByLabelText(/服务名称/i).value).toBe(''); // Form cleared
         expect(screen.getByText('等待测试...')).toBeInTheDocument(); // Test result cleared
       });
@@ -306,7 +260,7 @@ describe('AddServiceForm', () => {
 
     it('should show error if createDeveloperService API call fails', async () => {
       renderForm();
-      await fillFormAndPassTest();
+      await fillFormWithRequiredFields();
 
       const mockError = { message: 'Failed to save service' };
       apiClient.createDeveloperService.mockRejectedValueOnce(mockError);
@@ -325,7 +279,7 @@ describe('AddServiceForm', () => {
 
     it('should show error if createDeveloperService returns 2xx but with logical error in body', async () => {
       renderForm();
-      await fillFormAndPassTest();
+      await fillFormWithRequiredFields();
 
       const mockLogicErrorResponse = { 
         status: 200,

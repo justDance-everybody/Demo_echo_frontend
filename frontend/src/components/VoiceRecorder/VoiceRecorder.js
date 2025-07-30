@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { UI_CONFIG } from '../../config/uiConfig';
-import { INTERACTION_STATES, TIMEOUTS } from '../../config/constants';
+import { useInteraction, INTERACTION_STATES } from '../../contexts/InteractionContext';
 import { COMPONENT_LAYOUTS } from '../../styles/layouts';
 import './VoiceRecorder.css'; 
 
@@ -24,9 +24,6 @@ const VoiceRecorder = ({ onResult, onError, setStatus, disabled }) => { // Added
             recog.onstart = () => {
                 console.log('Voice recognition started (initial input).');
                 setIsListening(true); // Update local listening state
-                if (typeof setStatus === 'function') {
-                    setStatus(INTERACTION_STATES.LISTENING); // Update global status passed from parent
-                }
             };
 
             // Event handler when a final result is received
@@ -52,9 +49,6 @@ const VoiceRecorder = ({ onResult, onError, setStatus, disabled }) => { // Added
                 // Always reset the listening state when recognition ends
                 setIsListening(false);
                 // Optionally reset status to idle if needed
-                if (typeof setStatus === 'function') {
-                    setStatus(INTERACTION_STATES.IDLE);
-                }
             };
 
             // Store the configured recognition instance in state
@@ -87,6 +81,9 @@ const VoiceRecorder = ({ onResult, onError, setStatus, disabled }) => { // Added
         if (isListening) {
             // If currently listening, stop it
             try {
+                if (typeof setStatus === 'function') {
+                    setStatus(INTERACTION_STATES.IDLE);
+                }
                 recognition.stop(); 
             } catch (e) {
                  console.warn("Error stopping recognition:", e);
@@ -95,6 +92,9 @@ const VoiceRecorder = ({ onResult, onError, setStatus, disabled }) => { // Added
         } else {
             // If not listening, start it
             try {
+                if (typeof setStatus === 'function') {
+                    setStatus(INTERACTION_STATES.LISTENING); // Update global status passed from parent
+                }
                 recognition.start();
             } catch (e) {
                  // Handle potential errors when starting (e.g., trying to start while already started)

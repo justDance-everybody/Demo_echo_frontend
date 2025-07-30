@@ -81,6 +81,9 @@
   --spacing-10: 2.5rem;  /* 40px */
   --spacing-12: 3rem;    /* 48px */
   --spacing-16: 4rem;    /* 64px */
+
+  /* Layout */
+  --sidebar-width: 240px;
   
   /* 圆角 */
   --radius-none: 0;

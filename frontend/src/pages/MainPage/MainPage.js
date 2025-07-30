@@ -58,6 +58,10 @@ const MainPage = () => {
     const { speak, cancel: cancelTTS, isSpeaking } = useTTS(); 
     const { startListening, transcript: voiceTranscript, isListening, error: voiceError, reset: resetVoice } = useVoice();
     const voiceCoordinator = useVoiceCoordinator();
+
+    /* ----------------- 会话历史 ----------------- */
+    const [messages, setMessages] = useState([]);
+    const messagesEndRef = useRef(null);
     
     // 统一错误处理器
     const errorHandlerRef = useRef(null);
@@ -132,7 +136,7 @@ const MainPage = () => {
         
         console.log(`[Session: ${sessionId}] Received transcript:`, transcript);
         setTranscript(transcript);
-        setState(INTERACTION_STATES.SPEAKING);
+        setState(INTERACTION_STATES.THINKING);
         setResponse(null);
         setResultData(null);
         setPendingAction(null);
@@ -153,11 +157,12 @@ const MainPage = () => {
 
                 if (result.tool_calls && result.tool_calls.length > 0) {
                     console.log(`[Session: ${sessionId}] Tool call required. Pending action set.`);
+                    setResponse(result.confirm_text);
                     setPendingAction(result);
                     const textToConfirm = result.confirm_text || result.confirmText || '您确定要执行此操作吗？';
                     
                     // 设置状态为SPEAKING，准备播报确认信息
-                    setState(INTERACTION_STATES.SPEAKING);
+                    // setState(INTERACTION_STATES.SPEAKING);
                     
                     // 播报确认信息
                     voiceCoordinator.speak(textToConfirm, () => {
@@ -193,6 +198,7 @@ const MainPage = () => {
                 }
             } catch (error) {
                 console.error(`[Session: ${sessionId}] Interpret API call failed:`, error);
+                setResultData({ status: 'error', data: error });
                 errorHandlerRef.current.handleError(error, ERROR_TYPES.API_REQUEST, {
                     sessionId,
                     operation: 'interpret',
@@ -214,27 +220,24 @@ const MainPage = () => {
         }
         
         try {
-            setState('THINKING');
-            const execResult = await apiClient.execute(toolId, params, currentSessionId, userId);
-            
-            if (execResult.success && execResult.data) {
-                setResultData({ status: 'success', data: execResult.data });
+            setState(INTERACTION_STATES.EXECUTING);
+            const execResult = await apiClient.confirmExecution(currentSessionId, "是");
+            console.log("MainPage: 工具执行结果:", execResult);
+            if (execResult.success) {
+                setResponse(execResult.content);
                 
                 // 简化的文本提取逻辑
-                const textToSpeak = execResult.data?.summary || 
-                                  execResult.data?.tts_message || 
-                                  execResult.data?.message || 
-                                  execResult.data?.result || 
+                const textToSpeak = execResult.content || 
                                   '操作已完成';
                 
                 setState(INTERACTION_STATES.SPEAKING);
                 voiceCoordinator.speak(textToSpeak, () => {
                     console.log('工具执行结果播报完毕，重置状态');
-                    // 播报完成后重置到初始状态
-                    resetUIState();
+                    setState(INTERACTION_STATES.IDLE);
                 });
             } else {
-                throw new Error(execResult.error?.message || '工具执行失败');
+                setResultData({ status: 'error', data: execResult.error });
+                voiceCoordinator.speak(execResult.error);
             }
         } catch (error) {
             errorHandlerRef.current.handleError(error, ERROR_TYPES.TOOL_EXECUTION, {
@@ -310,6 +313,27 @@ const MainPage = () => {
         };
     }, [voiceCoordinator]);
 
+    /* 会话历史：追加用户语句 */
+    useEffect(() => {
+        if (lastTranscript) {
+            setMessages(prev => [...prev, { id: Date.now(), sender: 'user', text: lastTranscript }]);
+        }
+    }, [lastTranscript]);
+
+    /* 会话历史：追加 AI 回复 */
+    useEffect(() => {
+        if (typeof lastResponse === 'string' && lastResponse) {
+            setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'ai', text: lastResponse }]);
+        }
+    }, [lastResponse]);
+
+    /* 滚动到底部 */
+    useEffect(() => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [messages]);
+
     const handleVoiceError = useCallback((error) => {
         console.error('VoiceRecorder Error:', error);
         
@@ -366,130 +390,141 @@ const MainPage = () => {
         }
     }, [voiceCoordinator.errorMessage, currentState, voiceCoordinator, reset, setState]);
 
+    const handleClearHistory = useCallback(() => {
+        setMessages([]);
+    }, [setMessages]);
+
     // UI Rendering
     return (
         <motion.div
-            className={getContainerClassName(currentState)}
+            className="main-page-container"
             data-testid="main-page"
             {...getAnimationProps('pageTransition')}
         >
-            {/* 交互进度指示器 */}
-            <InteractionProgressIndicator 
-                data-testid="interaction-progress"
-                currentState={currentState}
-                showDetailedInfo={true}
-                compact={false}
-            />
-            
-            <StatusBar 
-                {...getComponentProps('statusBar')}
-                data-testid="status-bar"
-                currentStatus={currentState} 
-                lastTranscript={lastTranscript} 
-                lastResponse={lastResponse} 
-            />
-            
-            <div {...getComponentProps('contentWrapper')}>
-                {/* 主内容区 */}
-                <div {...getComponentProps('contentArea')}>
-                    <div {...getComponentProps('messagesContainer')}>
-                        {lastTranscript && (
-                            <motion.div 
-                                className="transcript user-message"
-              initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.3 }}
-            >
-                                <div className="message-header">你说</div>
-                                <div className="message-content">{lastTranscript}</div>
-                            </motion.div>
-                        )}
-                        
-                        {typeof lastResponse === 'string' && lastResponse && (
-                            <motion.div 
-                                className="ai-response system-message"
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.3 }}
-                            >
-                                <div className="message-header">AI</div>
-                                <div className="message-content">{lastResponse}</div>
-                            </motion.div>
-                        )}
-                        
-                        {lastResponse && typeof lastResponse === 'object' && lastResponse.status !== 'success' && (
-                            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.3 }}
-                                className="result-container"
-            >
-              <ResultDisplay
-                                    status={lastResponse.status}
-                                    message={lastResponse.message} 
-                                    autoSpeak={false}
-              />
-                            </motion.div>
-                        )}
-                        
-                        {resultData && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.3 }}
-                                className="result-container"
-                                data-testid="result-display"
-                            >
-                                <ResultDisplay 
-                                    status={resultData.status}
-                                    data={resultData.data} 
-                                    message={resultData.message}
-                                    autoSpeak={true}
-                                    onDismiss={handleReset}
-                                />
-                            </motion.div>
-                        )}
-                    </div>
-        
-        {/* 重置按钮 */}
-                    {shouldShowResetButton(currentState) && (
-                        <motion.button 
-                            {...getComponentProps('resetButton')}
-                            data-testid="reset-button"
-                            onClick={handleReset}
-                            {...getAnimationProps('resetButton')}
-                        >
-                            重新开始
-                        </motion.button>
-                    )}
-                    
-                    {/* 语音输入按钮 */}
-                    <VoiceRecorder 
-                        {...getComponentProps('voiceRecorder')}
-                        data-testid="voice-recorder"
-                        onResult={handleVoiceResult} 
-                        onError={handleVoiceError}
-                        setStatus={setState}
-                        disabled={currentState !== INTERACTION_STATES.IDLE && currentState !== INTERACTION_STATES.LISTENING} // 允许在idle和listening状态下使用
-                    />
-      </div>
+            <div className="phone-frame">
+            {/* Energy Core Container */}
+            <div className="energy-core-container">
+                <div 
+                    className={`energy-core ${currentState.toLowerCase()}`}
+                    data-testid="energy-core"
+                />
             </div>
-            
-            {/* 确认对话框 */}
+
+            {/* Messages Container */}
+            <div className="messages-container">
+                <AnimatePresence initial={false}>
+                    {messages.map((msg) => (
+                        <motion.div
+                            key={msg.id}
+                            className={`message ${msg.sender === 'user' ? 'user-message' : 'system-message'}`}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            <div className="message-header">{msg.sender === 'user' ? '你说' : 'AI'}</div>
+                            <div className="message-content">{msg.text}</div>
+                        </motion.div>
+                    ))}
+                    {resultData && (
+                        <motion.div
+                            className="message system-message"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ duration: 0.3 }}
+                            data-testid="result-display"
+                        >
+                            <ResultDisplay 
+                                status={resultData.status}
+                                data={resultData.data} 
+                                message={resultData.message}
+                                autoSpeak={true}
+                                onDismiss={handleReset}
+                            />
+                        </motion.div>
+                    )}
+                    <div ref={messagesEndRef} />
+                </AnimatePresence>
+            </div>
+
+            {/* Voice Recorder + Status Text */}
+            <div className="voice-recorder">
+                <div className="status-text">
+                    {currentState === INTERACTION_STATES.IDLE && "准备就绪"}
+                    {currentState === INTERACTION_STATES.LISTENING && "正在倾听..."}
+                    {currentState === INTERACTION_STATES.THINKING && "正在理解..."}
+                    {currentState === INTERACTION_STATES.SPEAKING && "正在回应..."}
+                    {currentState === INTERACTION_STATES.CONFIRMING && "请确认操作"}
+                    {currentState === INTERACTION_STATES.EXECUTING && "正在执行..."}
+                    {currentState === INTERACTION_STATES.ERROR && "出现错误"}
+                </div>
+                <VoiceRecorder 
+                    className="voice-recorder-button"
+                    data-testid="voice-recorder"
+                    onResult={handleVoiceResult} 
+                    onError={handleVoiceError}
+                    setStatus={setState}
+                    disabled={currentState !== INTERACTION_STATES.IDLE && currentState !== INTERACTION_STATES.LISTENING}
+                />
+            </div>
+
+            {/* Reset Button */}
             <AnimatePresence>
-                {isConfirmModalOpen && (
-                    <ConfirmationModal
-                        {...getComponentProps('confirmationModal')}
-                        isOpen={isConfirmModalOpen}
-                        confirmText={confirmText}
-                        onConfirm={handleUserConfirm}
-                        onRetry={handleUserRetry}
-                        onCancel={handleUserCancel}
-                        voiceCoordinator={voiceCoordinator}
-                        useVoiceConfirmation={true}
-                    />
+                {shouldShowResetButton(currentState) && (
+                    <motion.button 
+                        className="reset-button"
+                        data-testid="reset-button"
+                        onClick={handleReset}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                    >
+                        重新开始
+                    </motion.button>
                 )}
             </AnimatePresence>
+
+            {/* Clear History Button */}
+            <button 
+                className="clear-history-button"
+                data-testid="clear-history-button"
+                onClick={handleClearHistory}
+            >
+                清除历史
+            </button>
+
+            {/* Confirmation Modal */}
+            <AnimatePresence>
+                {isConfirmModalOpen && (
+                    <motion.div
+                        className="confirmation-card"
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        transition={{ duration: 0.3 }}
+                    >
+                        <div className="icon">💬</div>
+                        <h2 className="title">确认操作</h2>
+                        <p className="description">{confirmText}</p>
+                        <div className="action-buttons">
+                            <button 
+                                className="action-button cancel-button" 
+                                onClick={handleUserCancel}
+                            >
+                                取消
+                            </button>
+                            <button 
+                                className="action-button confirm-button"
+                                onClick={handleUserConfirm}
+                            >
+                                确认
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+            </div> {/* end phone-frame */}
         </motion.div>
     );
 };

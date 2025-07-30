@@ -81,7 +81,7 @@ const SideNav = styled.nav`
   left: 0;
   top: 56px;
   bottom: 0;
-  width: 240px;
+  width: var(--sidebar-width, 240px);
   background-color: var(--surface);
   border-right: 1px solid var(--border);
   padding: var(--spacing-4) 0;
@@ -123,7 +123,7 @@ const MainContent = styled.div`
   flex-direction: column;
   
   @media (min-width: 768px) {
-    margin-left: ${props => props.hasSideNav ? 'var(--sidebar-width)' : '0'};
+    margin-left: ${props => props.hasSideNav ? 'var(--sidebar-width, 240px)' : '0'};
   }
 `;
 

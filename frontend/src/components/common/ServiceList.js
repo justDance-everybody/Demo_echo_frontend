@@ -37,6 +37,25 @@ const ControlsRow = styled.div`
   margin-bottom: var(--spacing-3);
 `;
 
+// 顶部控制栏（搜索、标签页、视图切换等）在滚动时保持可见
+const StickyHeader = styled.div`
+  position: sticky;
+  top: 0; /* 与 AppLayout Header 对齐 */
+  z-index: var(--z-index-sticky);
+  background-color: var(--background);
+  /* 渐隐分割线，避免与内容视觉黏连 */
+  &:after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background-color: var(--border);
+    pointer-events: none;
+  }
+`;
+
 const ViewToggle = styled.div`
   display: flex;
   align-items: center;
@@ -392,7 +411,7 @@ const ServiceList = ({
   }
   
   const renderControls = () => (
-    <>
+    <StickyHeader>
       <SearchContainer>
         <SearchBar
           placeholder="搜索服务"
@@ -401,24 +420,24 @@ const ServiceList = ({
           onCancel={() => handleSearch('')}
         />
       </SearchContainer>
-      
+
       <StyledTabs activeKey={activeTab} onChange={handleTabChange}>
         <Tabs.Tab title="全部" key="all" />
         <Tabs.Tab title="语音" key="voice" />
         <Tabs.Tab title="内容" key="content" />
       </StyledTabs>
-      
+
       <ControlsRow>
         <div style={{ display: 'flex', gap: 'var(--spacing-2)' }}>
           <ViewToggle>
-            <div 
+            <div
               className={`toggle-button ${viewMode === 'grid' ? 'active' : ''}`}
               onClick={() => toggleViewMode('grid')}
               aria-label="网格视图"
             >
               <AppstoreOutline fontSize={20} />
             </div>
-            <div 
+            <div
               className={`toggle-button ${viewMode === 'list' ? 'active' : ''}`}
               onClick={() => toggleViewMode('list')}
               aria-label="列表视图"
@@ -426,17 +445,17 @@ const ServiceList = ({
               <UnorderedListOutline fontSize={20} />
             </div>
           </ViewToggle>
-          
+
           <FilterButton onClick={() => setShowFilter(true)}>
             <FilterOutline style={{ marginRight: 4 }} />
             筛选
             {activeFilterCount > 0 && <FilterCount>{activeFilterCount}</FilterCount>}
           </FilterButton>
         </div>
-        
+
         <SortControls>
           <span className="sort-label">排序:</span>
-          <select 
+          <select
             className="sort-select"
             value={sortBy}
             onChange={handleSortChange}
@@ -451,7 +470,7 @@ const ServiceList = ({
           </select>
         </SortControls>
       </ControlsRow>
-    </>
+    </StickyHeader>
   );
   
   // 渲染筛选弹窗

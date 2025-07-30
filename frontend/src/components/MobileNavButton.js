@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import './MobileNavButton.css';
+import { Link } from 'react-router-dom';
 
 const ButtonContainer = styled.button`
   display: flex;
@@ -25,19 +26,51 @@ const ButtonContainer = styled.button`
   }
 `;
 
-const MobileNavButton = ({ isOpen, onClick }) => {
+// MobileNavButton 组件内部负责管理菜单打开状态，并渲染移动端菜单列表
+const MobileNavButton = ({ items = [], onNavigate }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  // 切换菜单打开状态
+  const toggleMenu = () => setIsOpen((prev) => !prev);
+
+  // 处理菜单项点击
+  const handleItemClick = (url) => {
+    setIsOpen(false); // 关闭菜单
+    if (typeof onNavigate === 'function') {
+      // 提供给父组件的回调（可选）
+      onNavigate(url);
+    }
+  };
+
   return (
-    <ButtonContainer
-      onClick={onClick}
-      aria-label={isOpen ? "关闭导航菜单" : "打开导航菜单"}
-      className={isOpen ? "open" : ""}
-    >
-      <div className="hamburger">
-        <span></span>
-        <span></span>
-        <span></span>
+    <>
+      {/* 汉堡按钮 */}
+      <ButtonContainer
+        onClick={toggleMenu}
+        aria-label={isOpen ? '关闭导航菜单' : '打开导航菜单'}
+        className={isOpen ? 'open' : ''}
+      >
+        <div className="hamburger">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </ButtonContainer>
+
+      {/* 移动端菜单 */}
+      <div className={`mobile-menu ${isOpen ? 'is-open' : ''}`}>
+        {items.map((item, index) => (
+          <Link
+            key={index}
+            to={item.url}
+            className={`menu-item ${item.isActive ? 'active' : ''}`}
+            onClick={() => handleItemClick(item.url)}
+          >
+            {item.label}
+          </Link>
+        ))}
       </div>
-    </ButtonContainer>
+    </>
   );
 };
 

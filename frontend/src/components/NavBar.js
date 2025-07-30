@@ -88,7 +88,7 @@ const ActionsArea = styled.div`
 // 按钮样式
 const Button = styled(Link)`
   background-color: var(--primary-color);
-  color: white;
+  color: var(--text-color);
   padding: 0.5rem 1rem;
   border-radius: var(--border-radius, 4px);
   text-decoration: none;
