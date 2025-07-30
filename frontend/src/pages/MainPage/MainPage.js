@@ -222,19 +222,18 @@ const MainPage = () => {
         try {
             setState(INTERACTION_STATES.EXECUTING);
             const execResult = await apiClient.confirmExecution(currentSessionId, "是");
-            
+            console.log("MainPage: 工具执行结果:", execResult);
             if (execResult.success) {
-                setResultData({ status: 'success', data: execResult.content });
+                setResponse(execResult.content);
                 
                 // 简化的文本提取逻辑
-                const textToSpeak = execResult?.content || 
+                const textToSpeak = execResult.content || 
                                   '操作已完成';
                 
                 setState(INTERACTION_STATES.SPEAKING);
                 voiceCoordinator.speak(textToSpeak, () => {
                     console.log('工具执行结果播报完毕，重置状态');
-                    // 播报完成后重置到初始状态
-                    resetUIState();
+                    setState(INTERACTION_STATES.IDLE);
                 });
             } else {
                 setResultData({ status: 'error', data: execResult.error });
