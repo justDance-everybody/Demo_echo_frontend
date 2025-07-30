@@ -116,7 +116,7 @@ export const SessionProvider = ({ children }) => {
       setError(null);
       
       const { action, params } = currentData;
-      const response = await apiClient.execute(action, params, sessionId, userId);
+      const response = await apiClient.execute(sessionId, action, params, userId);
       
       setCurrentData(response);
       setStage(SessionStages.RESULT);

@@ -6,26 +6,21 @@ import InteractionProgressIndicator from '../../components/InteractionProgressIn
 import apiClient from '../../services/apiClient'; 
 import useTTS from '../../hooks/useTTS'; 
 import useVoice from '../../hooks/useVoice';
-import ConfirmationModal from '../../components/ConfirmationModal';
+
 import ResultDisplay from '../../components/ResultDisplay';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { AuthContext } from '../../contexts/AuthContext';
 import { useInteraction, INTERACTION_STATES } from '../../contexts/InteractionContext';
 import { useVoiceCoordinator } from '../../hooks/useVoiceCoordinator';
 import { createUnifiedErrorHandler, ERROR_TYPES } from '../../utils/unifiedErrorHandler';
 import './MainPage.css'; 
-import useIntent from '../../hooks/useIntent';
 import { 
-    MAIN_PAGE_STYLES, 
-    getStateStyle, 
     shouldShowResetButton, 
     getContainerClassName, 
     getAnimationProps, 
     getComponentProps 
 } from './MainPageStyles';
 import { UI_CONFIG } from '../../config/uiConfig';
-import { COMPONENT_LAYOUTS, ANIMATION_LAYOUTS } from '../../styles/layouts';
-import { TIMEOUTS, CONFIRM_KEYWORDS } from '../../config/constants';
 
 console.log('Test persistence');
 
@@ -39,9 +34,6 @@ const MainPage = () => {
         lastResponse,
         pendingAction,
         resultData,
-        isConfirmModalOpen,
-        confirmText,
-        error,
         sessionId,
         setState,
         setTranscript,
@@ -49,14 +41,10 @@ const MainPage = () => {
         setPendingAction,
         setResultData,
         setError,
-        reset,
-        closeConfirmModal,
-        openConfirmModal
+        reset
     } = useInteraction();
     
     // 语音相关hooks
-    const { speak, cancel: cancelTTS, isSpeaking } = useTTS(); 
-    const { startListening, transcript: voiceTranscript, isListening, error: voiceError, reset: resetVoice } = useVoice();
     const voiceCoordinator = useVoiceCoordinator();
     
     // 统一错误处理器
@@ -76,9 +64,9 @@ const MainPage = () => {
             enableLogging: true
         });
     }
-    
-    // 简化的状态引用
-    const resetTimerRef = useRef(null);
+
+    // 流式对话消息状态
+    const [streamMessages, setStreamMessages] = useState([]);
 
     useEffect(() => {
         if (!sessionId) {
@@ -94,128 +82,103 @@ const MainPage = () => {
         console.log('重置界面状态...');
         setState(INTERACTION_STATES.IDLE);
         setPendingAction(null);
-        closeConfirmModal();
         setResultData(null);
+        setStreamMessages([]); // 清空流式消息
         voiceCoordinator.forceStopAll();
         // 保留最后一次的文本记录，但可以选择清除
-        // setTranscript('');
-        // setResponse(null);
-        
-        // 重新启动语音监听
-        setTimeout(() => {
-            voiceCoordinator.startListening();
-        }, UI_CONFIG.delays.voiceActivation);
-    }, [setState, setPendingAction, closeConfirmModal, setResultData, voiceCoordinator]);
+    }, [setState, setPendingAction, setResultData, voiceCoordinator]);
 
-    const handleVoiceResult = useCallback(async (transcript) => {
-        // 检查用户认证状态
-        if (!isAuthenticated) {
-            console.error('用户未认证，无法处理语音请求');
-            setState(INTERACTION_STATES.ERROR);
-            setResponse({ status: 'error', message: '请先登录后再使用语音功能。' });
-            voiceCoordinator.speak('请先登录后再使用语音功能', resetUIState);
-            return;
-        }
-        
-        // 清除任何现有的重置计时器
-        if (resetTimerRef.current) {
-            clearTimeout(resetTimerRef.current);
-            resetTimerRef.current = null;
-        }
-        
-        if (!sessionId) {
-            console.error('Session ID is not initialized.');
-            setState(INTERACTION_STATES.ERROR);
-            setResponse({ status: 'error', message: '会话初始化失败，请刷新页面重试。' });
-            return;
-        }
-        
-        console.log(`[Session: ${sessionId}] Received transcript:`, transcript);
-        setTranscript(transcript);
-        setState(INTERACTION_STATES.SPEAKING);
-        setResponse(null);
-        setResultData(null);
-        setPendingAction(null);
-        closeConfirmModal();
+    // 添加流式消息
+    const addStreamMessage = useCallback((type, content, options = {}) => {
+        const newMessage = {
+            id: Date.now() + Math.random(),
+            type, // 'user' 或 'ai'
+            content,
+            timestamp: new Date().toLocaleTimeString(),
+            ...options
+        };
+        setStreamMessages(prev => [...prev, newMessage]);
+    }, []);
 
-        // 第一步：复述用户的指令
-        const repeatMessage = `我听到您说：${transcript}。正在为您处理...`;
-        console.log(`[Session: ${sessionId}] 复述用户指令:`, repeatMessage);
-        
-        voiceCoordinator.speak(repeatMessage, async () => {
-            // 复述完成后，开始意图识别
-            console.log(`[Session: ${sessionId}] 复述完成，开始意图识别`);
-            setState(INTERACTION_STATES.THINKING);
-            
-            try {
-                const result = await apiClient.interpret(transcript, sessionId, 1); 
-                console.log(`[Session: ${sessionId}] Interpret API Result:`, result);
-
-                if (result.tool_calls && result.tool_calls.length > 0) {
-                    console.log(`[Session: ${sessionId}] Tool call required. Pending action set.`);
-                    setPendingAction(result);
-                    const textToConfirm = result.confirm_text || result.confirmText || '您确定要执行此操作吗？';
-                    
-                    // 设置状态为SPEAKING，准备播报确认信息
-                    setState(INTERACTION_STATES.SPEAKING);
-                    
-                    // 播报确认信息
-                    voiceCoordinator.speak(textToConfirm, () => {
-                        // 确认信息播报完毕，打开确认模态框并设置状态为CONFIRMING
-                        console.log("MainPage: 确认信息播报完毕，打开确认模态框");
-                        openConfirmModal(textToConfirm);
-                        setState(INTERACTION_STATES.CONFIRMING);
-                    });
-                } else if ((result.action === 'respond' && result.content) || (result.type === 'direct_response' && result.content)) {
-                    console.log(`[Session: ${sessionId}] Direct response received.`);
-                    setResponse(result.content);
-                    setState(INTERACTION_STATES.SPEAKING);
-                    voiceCoordinator.speak(result.content, resetUIState);
-                } else {
-                    const textToConfirm = result.confirm_text || result.confirmText;
-                    if (textToConfirm) {
-                        console.log(`[Session: ${sessionId}] Confirmation text only received.`);
-                        setPendingAction(result);
-                        setState(INTERACTION_STATES.SPEAKING);
-                        
-                        voiceCoordinator.speak(textToConfirm, () => {
-                            console.log("MainPage: 确认信息(无工具调用)播报完毕，打开确认模态框");
-                            openConfirmModal(textToConfirm);
-                            setState(INTERACTION_STATES.CONFIRMING);
-                        });
-                    } else {
-                        console.log(`[Session: ${sessionId}] Response format detection:`, result);
-                        const message = JSON.stringify(result);
-                        setResponse(`收到未知格式的响应: ${message}`);
-                        setState(INTERACTION_STATES.SPEAKING);
-                        voiceCoordinator.speak("收到未知格式的响应，请检查控制台", resetUIState);
-                    }
-                }
-            } catch (error) {
-                console.error(`[Session: ${sessionId}] Interpret API call failed:`, error);
-                errorHandlerRef.current.handleError(error, ERROR_TYPES.API_REQUEST, {
-                    sessionId,
-                    operation: 'interpret',
-                    retryCallback: () => handleVoiceResult(transcript)
-                });
+    // 更新最后一条AI消息
+    const updateLastAIMessage = useCallback((content, options = {}) => {
+        setStreamMessages(prev => {
+            const newMessages = [...prev];
+            const lastAIIndex = newMessages.findLastIndex(msg => msg.type === 'ai');
+            if (lastAIIndex !== -1) {
+                newMessages[lastAIIndex] = {
+                    ...newMessages[lastAIIndex],
+                    content,
+                    ...options
+                };
             }
+            return newMessages;
         });
-    }, [voiceCoordinator, resetUIState, isAuthenticated, sessionId, setState, setTranscript, setResponse, setResultData, setPendingAction, closeConfirmModal, openConfirmModal]);
+    }, []);
 
-    // 简化的工具执行逻辑
-    const executeToolAndHandleResult = useCallback(async (toolId, params, currentSessionId, userId) => {
-        // 检查用户认证状态
-        if (!isAuthenticated) {
-            console.error('用户未认证，无法执行工具');
-            setState('ERROR');
-            setResultData({ status: 'error', message: '请先登录后再执行操作。' });
-            voiceCoordinator.speak('请先登录后再执行操作');
+    // 处理语音结果
+    const handleVoiceResult = useCallback(async (transcript) => {
+        console.log('收到语音结果:', transcript);
+        
+        if (!transcript || transcript.trim() === '') {
+            console.log('语音结果为空，忽略');
             return;
         }
+
+        // 添加用户消息到流式对话
+        addStreamMessage('user', transcript);
+        
+        setTranscript(transcript);
+        setState(INTERACTION_STATES.THINKING);
         
         try {
-            setState('THINKING');
-            const execResult = await apiClient.execute(toolId, params, currentSessionId, userId);
+            // 添加AI思考消息
+            addStreamMessage('ai', '正在理解您的需求...');
+            
+            const response = await apiClient.interpret(transcript, sessionId, 1);
+            console.log('意图解析结果:', response);
+            
+            setResponse(response);
+            
+            // 更新AI消息内容
+            updateLastAIMessage(response.content || '我理解了您的需求');
+            
+            if (response.type === 'tool_call' && response.tool_calls && response.tool_calls.length > 0) {
+                // 需要确认的操作 - 保持THINKING状态直到用户确认
+                setPendingAction(response);
+                // 不立即改变状态，保持THINKING状态
+                
+                // 添加确认消息，不弹出模态框
+                addStreamMessage('ai', response.confirm_text || '请确认是否执行此操作？', {
+                    isConfirm: true,
+                    toolCalls: response.tool_calls
+                });
+                
+                // 移除模态框弹出
+                // openConfirmModal(response.confirm_text || '请确认是否执行此操作？');
+            } else {
+                // 直接响应 - 保持THINKING状态直到播报完成
+                voiceCoordinator.speak(response.content || '处理完成', () => {
+                    setState(INTERACTION_STATES.IDLE);
+                });
+            }
+        } catch (error) {
+            console.error('处理语音结果失败:', error);
+            setError(error.message || '处理失败，请重试');
+            setState(INTERACTION_STATES.ERROR);
+            
+            // 添加错误消息
+            addStreamMessage('ai', '抱歉，处理您的请求时出现了问题，请重试。');
+        }
+    }, [sessionId, setTranscript, setResponse, setPendingAction, setState, setError, addStreamMessage, updateLastAIMessage, voiceCoordinator]);
+
+    // 工具执行和结果处理
+    const executeToolAndHandleResult = useCallback(async (toolId, params, currentSessionId, userId) => {
+        console.log(`[Session: ${currentSessionId}] 开始执行工具: ${toolId}`);
+        
+        try {
+            setState(INTERACTION_STATES.EXECUTING);
+            const execResult = await apiClient.execute(currentSessionId, toolId, params, userId);
             
             if (execResult.success && execResult.data) {
                 setResultData({ status: 'success', data: execResult.data });
@@ -226,6 +189,9 @@ const MainPage = () => {
                                   execResult.data?.message || 
                                   execResult.data?.result || 
                                   '操作已完成';
+                
+                // 更新最后一条AI消息为执行结果
+                updateLastAIMessage(textToSpeak);
                 
                 setState(INTERACTION_STATES.SPEAKING);
                 voiceCoordinator.speak(textToSpeak, () => {
@@ -243,12 +209,27 @@ const MainPage = () => {
                 sessionId: currentSessionId,
                 retryCallback: () => executeToolAndHandleResult(toolId, params, currentSessionId, userId)
             });
+            
+            // 添加错误消息
+            updateLastAIMessage('执行失败，请重试。');
         }
-    }, [isAuthenticated, setState, setResultData, voiceCoordinator, resetUIState]);
+    }, [setState, setResultData, voiceCoordinator, resetUIState, updateLastAIMessage]);
 
+    // 处理语音错误
+    const handleVoiceError = useCallback((error) => {
+        console.error('VoiceRecorder Error:', error);
+        setError(error.message || '语音识别失败');
+        setState(INTERACTION_STATES.ERROR);
+        
+        // 添加错误消息
+        addStreamMessage('ai', '语音识别失败，请重试。');
+    }, [setError, setState, addStreamMessage]);
+
+    // 处理用户确认
     const handleUserConfirm = useCallback(() => {
         console.log(`[Session: ${sessionId}] 用户确认了操作`);
-        closeConfirmModal();
+        // 移除模态框关闭，因为不再使用模态框
+        // closeConfirmModal();
         
         // 从pendingAction获取工具信息
         let toolId, params, userId = 1;
@@ -264,26 +245,29 @@ const MainPage = () => {
         
         console.log(`[Session: ${sessionId}] 准备执行工具: ${toolId}，参数:`, params);
         
+        // 设置状态为CONFIRMING，表示正在等待确认
+        setState(INTERACTION_STATES.CONFIRMING);
+        
+        // 添加执行消息
+        addStreamMessage('ai', '正在执行操作...');
+        
         // 执行工具调用
         executeToolAndHandleResult(toolId, params, sessionId, userId);
-    }, [pendingAction, closeConfirmModal, sessionId, executeToolAndHandleResult]);
+    }, [pendingAction, sessionId, addStreamMessage, executeToolAndHandleResult]);
 
-    const handleUserRetry = useCallback(() => {
-        closeConfirmModal();
-        setPendingAction(null);
-        setState(INTERACTION_STATES.IDLE);
-        console.log('User chose to retry.');
-        // 重新开始语音识别
-        setTimeout(() => {
-            voiceCoordinator.startListening();
-        }, UI_CONFIG.delays.voiceActivation);
-    }, [closeConfirmModal, setPendingAction, setState, voiceCoordinator]);
 
+
+    // 处理用户取消
     const handleUserCancel = useCallback(() => {
         console.log(`[Session: ${sessionId}] 用户取消了操作`);
-        closeConfirmModal();
+        // 移除模态框关闭，因为不再使用模态框
+        // closeConfirmModal();
         setPendingAction(null);
         setState(INTERACTION_STATES.IDLE);
+        
+        // 添加取消消息
+        addStreamMessage('ai', '好的，操作已取消。');
+        
         voiceCoordinator.speak("好的，操作已取消。", () => {
             console.log('取消操作播报完毕，重新启动语音监听');
             // 延迟启动语音监听，确保TTS完全结束
@@ -291,61 +275,16 @@ const MainPage = () => {
                 voiceCoordinator.startListening();
             }, UI_CONFIG.delays.voiceActivation);
         });
-    }, [closeConfirmModal, setPendingAction, setState, sessionId, voiceCoordinator]);
+    }, [setPendingAction, setState, sessionId, voiceCoordinator, addStreamMessage]);
 
-    useEffect(() => {
-        if (!voiceCoordinator.isTTSActive && (currentState === INTERACTION_STATES.SPEAKING || currentState === INTERACTION_STATES.ERROR)) {
-            console.log('TTS finished, setting state to idle.');
-            setState(INTERACTION_STATES.IDLE);
-        }
-    }, [voiceCoordinator.isTTSActive, currentState, setState]);
-
-    useEffect(() => {
-        return () => {
-            // 组件卸载时清理资源
-            voiceCoordinator.forceStopAll();
-            if (resetTimerRef.current) {
-                clearTimeout(resetTimerRef.current);
-            }
-        };
-    }, [voiceCoordinator]);
-
-    const handleVoiceError = useCallback((error) => {
-        console.error('VoiceRecorder Error:', error);
-        
-        errorHandlerRef.current.handleError(error, ERROR_TYPES.VOICE_RECOGNITION, {
-            component: 'VoiceRecorder',
-            retryCallback: () => {
-                setTimeout(() => {
-                    voiceCoordinator.startListening();
-                }, 1000);
-            }
-        });
-    }, [voiceCoordinator]);
-    
-    // 添加手动重置按钮处理函数
+    // 处理重置
     const handleReset = useCallback(() => {
-        console.log('Manual reset triggered');
-        
-        // 停止所有语音活动
-        voiceCoordinator.forceStopAll();
-        
-        // 重置所有状态
-        reset();
-        
-        // 清除任何定时器
-        if (resetTimerRef.current) {
-            clearTimeout(resetTimerRef.current);
-            resetTimerRef.current = null;
-        }
-    }, [voiceCoordinator, reset]);
-    
-    // 移除侧边栏相关的处理函数
+        console.log('用户点击重置');
+        resetUIState();
+        setStreamMessages([]); // 清空流式消息
+    }, [resetUIState]);
 
-    // 移除MainPage中的语音确认处理逻辑，完全交给ConfirmationModal处理
-    // 这样避免了双重语音处理的冲突问题
-
-    // 处理语音识别错误
+    // 监听语音协调器错误
     useEffect(() => {
         if (voiceCoordinator.errorMessage) {
             console.error("语音协调器报告错误:", voiceCoordinator.errorMessage);
@@ -365,6 +304,43 @@ const MainPage = () => {
             }
         }
     }, [voiceCoordinator.errorMessage, currentState, voiceCoordinator, reset, setState]);
+
+    // 渲染流式消息
+    const renderStreamMessages = () => {
+        return streamMessages.map((message, index) => (
+            <motion.div
+                key={message.id}
+                className={`stream-item ${message.type} ${message.isConfirm ? 'confirm' : ''}`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+            >
+                <div className="message-content">{message.content}</div>
+                <div className="message-timestamp">{message.timestamp}</div>
+                
+                {message.isConfirm && message.toolCalls && (
+                    <div className="stream-item-buttons">
+                        <button 
+                            className="confirm-btn"
+                            onClick={handleUserConfirm}
+                        >
+                            确认
+                        </button>
+                        <button 
+                            className="cancel-btn"
+                            onClick={handleUserCancel}
+                        >
+                            取消
+                        </button>
+                    </div>
+                )}
+            </motion.div>
+        ));
+    };
+
+
+
+
 
     // UI Rendering
     return (
@@ -392,46 +368,11 @@ const MainPage = () => {
             <div {...getComponentProps('contentWrapper')}>
                 {/* 主内容区 */}
                 <div {...getComponentProps('contentArea')}>
-                    <div {...getComponentProps('messagesContainer')}>
-                        {lastTranscript && (
-                            <motion.div 
-                                className="transcript user-message"
-              initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.3 }}
-            >
-                                <div className="message-header">你说</div>
-                                <div className="message-content">{lastTranscript}</div>
-                            </motion.div>
-                        )}
+                    {/* 流式对话容器 */}
+                    <div className="stream-container">
+                        {renderStreamMessages()}
                         
-                        {typeof lastResponse === 'string' && lastResponse && (
-                            <motion.div 
-                                className="ai-response system-message"
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.3 }}
-                            >
-                                <div className="message-header">AI</div>
-                                <div className="message-content">{lastResponse}</div>
-                            </motion.div>
-                        )}
-                        
-                        {lastResponse && typeof lastResponse === 'object' && lastResponse.status !== 'success' && (
-                            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.3 }}
-                                className="result-container"
-            >
-              <ResultDisplay
-                                    status={lastResponse.status}
-                                    message={lastResponse.message} 
-                                    autoSpeak={false}
-              />
-                            </motion.div>
-                        )}
-                        
+                        {/* 结果显示 */}
                         {resultData && (
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
@@ -451,7 +392,7 @@ const MainPage = () => {
                         )}
                     </div>
         
-        {/* 重置按钮 */}
+                    {/* 重置按钮 */}
                     {shouldShowResetButton(currentState) && (
                         <motion.button 
                             {...getComponentProps('resetButton')}
@@ -472,24 +413,10 @@ const MainPage = () => {
                         setStatus={setState}
                         disabled={currentState !== INTERACTION_STATES.IDLE && currentState !== INTERACTION_STATES.LISTENING} // 允许在idle和listening状态下使用
                     />
-      </div>
+                </div>
             </div>
             
-            {/* 确认对话框 */}
-            <AnimatePresence>
-                {isConfirmModalOpen && (
-                    <ConfirmationModal
-                        {...getComponentProps('confirmationModal')}
-                        isOpen={isConfirmModalOpen}
-                        confirmText={confirmText}
-                        onConfirm={handleUserConfirm}
-                        onRetry={handleUserRetry}
-                        onCancel={handleUserCancel}
-                        voiceCoordinator={voiceCoordinator}
-                        useVoiceConfirmation={true}
-                    />
-                )}
-            </AnimatePresence>
+
         </motion.div>
     );
 };

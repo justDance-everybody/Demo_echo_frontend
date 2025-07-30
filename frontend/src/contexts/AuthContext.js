@@ -19,8 +19,8 @@ export const AuthContext = createContext({
 // 认证提供者组件
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
-  const [isAuthenticated, setIsAuthenticated] = useState(!!token);
+  const [token, setToken] = useState(apiClient.getAuthToken());
+  const [isAuthenticated, setIsAuthenticated] = useState(!!apiClient.getAuthToken());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [role, setRole] = useState(localStorage.getItem('userRole') || 'user');
@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }) => {
 
   // 设置认证状态
   const setAuth = (userData, authToken, userRole) => {
-    localStorage.setItem('token', authToken);
+    apiClient.setAuthToken(authToken);
     if (userRole) {
       localStorage.setItem('userRole', userRole);
     }
@@ -39,18 +39,16 @@ export const AuthProvider = ({ children }) => {
     setRole(userRole || 'user');
     setIsAuthenticated(true);
     setLoading(false);
-    apiClient.setAuthToken(authToken);
   };
 
   // 清除认证状态
   const clearAuth = () => {
-    localStorage.removeItem('token');
+    apiClient.setAuthToken(null);
     localStorage.removeItem('userRole');
     setToken(null);
     setUser(null);
     setRole('user');
     setIsAuthenticated(false);
-    apiClient.setAuthToken(null);
   };
 
   // 登录
@@ -62,8 +60,8 @@ export const AuthProvider = ({ children }) => {
       const response = await apiClient.login(username, password);
       
       if (response.success) {
-        // 修复token字段不匹配的问题
-        const authToken = response.token || response.access_token;
+        // 根据API规范，使用access_token字段
+        const authToken = response.token;
         setAuth(response.user, authToken, response.user?.role);
         toast.success('登录成功');
         return true;
@@ -91,8 +89,8 @@ export const AuthProvider = ({ children }) => {
       const response = await apiClient.register(username, password, email);
       
       if (response.success) {
-        // 修复token字段不匹配的问题
-        const authToken = response.token || response.access_token;
+        // 根据API规范，注册成功后也会返回token
+        const authToken = response.token;
         setAuth(response.user, authToken, response.user?.role);
         toast.success('注册成功');
         return true;
@@ -119,12 +117,10 @@ export const AuthProvider = ({ children }) => {
 
   // 检查并刷新token
   const checkAuth = useCallback(async () => {
-    if (!token) return;
+    const currentToken = apiClient.getAuthToken();
+    if (!currentToken) return;
     
     try {
-      // 设置API客户端的token
-      apiClient.setAuthToken(token);
-      
       // 获取用户信息
       const userData = await apiClient.getUserInfo();
       
@@ -133,6 +129,7 @@ export const AuthProvider = ({ children }) => {
         setUser(userData);
         setRole(userData.role || 'user');
         setIsAuthenticated(true);
+        setToken(currentToken);
       } else {
         // 如果token无效，清除认证状态
         clearAuth();
@@ -142,7 +139,7 @@ export const AuthProvider = ({ children }) => {
       console.log('Token验证失败，清除认证状态:', err.message);
       clearAuth();
     }
-  }, [token]);
+  }, []);
 
   // 初始化加载用户信息
   useEffect(() => {

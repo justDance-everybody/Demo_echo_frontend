@@ -66,7 +66,22 @@ const ServicesPage = () => {
     setError(null);
     
     try {
-      const tools = await apiClient.getTools();
+      const response = await apiClient.getTools();
+      console.log('API响应:', response);
+      
+      // 确保 response 是数组，如果不是则尝试获取正确的数据
+      let tools = response;
+      if (response && typeof response === 'object' && !Array.isArray(response)) {
+        // 如果响应是对象，尝试获取其中的数组
+        tools = response.data || response.tools || response.results || [];
+        console.log('从响应对象中提取的工具数据:', tools);
+      }
+      
+      // 确保 tools 是数组
+      if (!Array.isArray(tools)) {
+        console.warn('API返回的工具数据不是数组:', tools);
+        tools = [];
+      }
       
       // 将工具数据转换为服务格式
       const mappedServices = tools.map(tool => ({

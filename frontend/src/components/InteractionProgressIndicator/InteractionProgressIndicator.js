@@ -9,46 +9,34 @@ import {
   ExclamationCircleOutlined,
   QuestionCircleOutlined
 } from '@ant-design/icons';
-import { INTERACTION_STATES } from '../../config/constants';
+import { INTERACTION_STATES } from '../../contexts/InteractionContext';
 import { UI_CONFIG } from '../../config/uiConfig';
 
-// 定义交互流程步骤
+// 定义交互流程步骤 - 符合验收标准的四阶段
 const INTERACTION_STEPS = [
   {
-    key: INTERACTION_STATES.IDLE,
-    label: '等待输入',
-    icon: AudioOutlined,
-    description: '点击麦克风开始语音输入'
-  },
-  {
     key: INTERACTION_STATES.LISTENING,
-    label: '语音识别',
+    label: '识别中',
     icon: AudioOutlined,
-    description: '正在监听您的语音指令'
+    description: '正在识别您的语音指令'
   },
   {
     key: INTERACTION_STATES.THINKING,
-    label: 'AI分析',
+    label: '理解中',
     icon: LoadingOutlined,
     description: 'AI正在理解和分析您的指令'
   },
   {
-    key: INTERACTION_STATES.CONFIRMING,
-    label: '确认操作',
-    icon: QuestionCircleOutlined,
-    description: '请确认是否执行此操作'
-  },
-  {
     key: INTERACTION_STATES.EXECUTING,
     label: '执行中',
-    icon: LoadingOutlined,
+    icon: PlayCircleOutlined,
     description: '正在执行您的指令'
   },
   {
     key: INTERACTION_STATES.SPEAKING,
-    label: '结果播报',
-    icon: PlayCircleOutlined,
-    description: 'AI正在播报执行结果'
+    label: '完成',
+    icon: CheckCircleOutlined,
+    description: '指令执行完成'
   }
 ];
 
@@ -173,26 +161,81 @@ const InteractionProgressIndicator = ({
   showDetailedInfo = true,
   compact = false 
 }) => {
-  // 获取当前步骤索引
-  const getCurrentStepIndex = () => {
-    return INTERACTION_STEPS.findIndex(step => step.key === currentState);
+  // 状态到阶段的映射 - 根据实际交互流程
+  const getStageFromState = (state) => {
+    switch (state) {
+      case INTERACTION_STATES.IDLE:
+        return 0; // 初始状态，显示第一阶段但未激活
+      case INTERACTION_STATES.LISTENING:
+        return 0; // 识别中 - 第一阶段
+      case INTERACTION_STATES.THINKING:
+        return 1; // 理解中 - 第二阶段
+      case INTERACTION_STATES.CONFIRMING:
+        return 2; // 执行中 - 第三阶段（等待确认后执行）
+      case INTERACTION_STATES.EXECUTING:
+        return 2; // 执行中 - 第三阶段
+      case INTERACTION_STATES.SPEAKING:
+        return 3; // 完成 - 第四阶段
+      case INTERACTION_STATES.ERROR:
+        return -1; // 错误状态，不显示进度
+      default:
+        return 0; // 默认显示第一阶段
+    }
   };
 
-  // 获取当前步骤信息
-  const getCurrentStep = () => {
-    return INTERACTION_STEPS.find(step => step.key === currentState) || INTERACTION_STEPS[0];
-  };
-
-  const currentStepIndex = getCurrentStepIndex();
-  const currentStep = getCurrentStep();
+    const currentStageIndex = getStageFromState(currentState);
   const isError = currentState === INTERACTION_STATES.ERROR;
+  const isIdle = currentState === INTERACTION_STATES.IDLE;
+  
 
+  
+
+  
+
+  
+  // 如果是空闲状态，显示初始状态（第一阶段但未激活）
+  if (isIdle) {
+    return (
+      <div>
+        <ProgressContainer>
+          {INTERACTION_STEPS.map((step, index) => (
+            <StepContainer key={step.key} isCompleted={false}>
+              <StepIcon
+                isActive={false}
+                isCompleted={false}
+                animate={{ scale: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                <step.icon />
+              </StepIcon>
+              <StepLabel isActive={false}>
+                {step.label}
+              </StepLabel>
+            </StepContainer>
+          ))}
+        </ProgressContainer>
+        
+        {showDetailedInfo && (
+          <CurrentStepInfo
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <CurrentStepTitle>等待语音输入</CurrentStepTitle>
+            <CurrentStepDescription>请点击麦克风开始语音交互</CurrentStepDescription>
+          </CurrentStepInfo>
+        )}
+      </div>
+    );
+  }
+  
   // 如果是紧凑模式，只显示当前状态
   if (compact) {
+    const currentStep = INTERACTION_STEPS[currentStageIndex] || INTERACTION_STEPS[0];
     return (
       <ProgressContainer>
         <StepIcon
-          isActive={!isError}
+          isActive={!isError && currentStageIndex >= 0}
           isCompleted={false}
           animate={{
             scale: isError ? [1, 1.1, 1] : [1, 1.05, 1],
@@ -212,7 +255,7 @@ const InteractionProgressIndicator = ({
             })
           )}
         </StepIcon>
-        <StepLabel isActive={!isError}>
+        <StepLabel isActive={!isError && currentStageIndex >= 0}>
           {isError ? '出现错误' : currentStep.label}
         </StepLabel>
       </ProgressContainer>
@@ -223,8 +266,10 @@ const InteractionProgressIndicator = ({
     <div>
       <ProgressContainer>
         {INTERACTION_STEPS.map((step, index) => {
-          const isActive = step.key === currentState;
-          const isCompleted = index < currentStepIndex;
+          // 判断是否为当前活跃阶段
+          const isActive = index === currentStageIndex && currentStageIndex >= 0 && currentState !== INTERACTION_STATES.IDLE;
+          // 判断是否为已完成阶段
+          const isCompleted = index < currentStageIndex && currentStageIndex >= 0;
           const IconComponent = step.icon;
           
           return (
@@ -271,15 +316,15 @@ const InteractionProgressIndicator = ({
       )}
 
       {/* 当前步骤详细信息 */}
-      {showDetailedInfo && !isError && (
+      {showDetailedInfo && !isError && currentStageIndex >= 0 && (
         <CurrentStepInfo
           key={currentState} // 添加key确保状态变化时重新渲染动画
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <CurrentStepTitle>{currentStep.label}</CurrentStepTitle>
-          <CurrentStepDescription>{currentStep.description}</CurrentStepDescription>
+          <CurrentStepTitle>{INTERACTION_STEPS[currentStageIndex].label}</CurrentStepTitle>
+          <CurrentStepDescription>{INTERACTION_STEPS[currentStageIndex].description}</CurrentStepDescription>
         </CurrentStepInfo>
       )}
     </div>

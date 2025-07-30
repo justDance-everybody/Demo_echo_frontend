@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Agent 交互设计方案展板</title>
+    <style>
+        :root {
+            --color-primary: #4FD1C5;
+            --color-background: #1E1E2F;
+            --color-text: #F8F8F8;
+            --color-card-bg: rgba(45, 45, 65, 0.6);
+            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --border-radius: 16px;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+
+        body {
+            background-color: var(--color-background);
+            color: var(--color-text);
+            font-family: var(--font-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 2rem 0;
+            overflow-x: hidden;
+        }
+
+        .header-info {
+            text-align: center;
+            margin-bottom: 2rem;
+            max-width: 800px;
+        }
+
+        nav {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 0.5rem;
+            border-radius: 12px;
+            background-color: rgba(0,0,0,0.2);
+        }
+
+        .nav-button {
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            color: #a0aec0;
+            font-family: var(--font-main);
+            font-size: 1rem;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-button.active {
+            background-color: var(--color-primary);
+            color: var(--color-background);
+            font-weight: 500;
+        }
+        
+        .phone-mockup {
+            position: relative;
+            width: 375px;
+            height: 720px; /* Reduced height for better screen fit */
+            background-color: #1A1A2A;
+            border-radius: 40px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 0 0 2px rgba(255,255,255,0.05);
+            display: none; /* Hidden by default */
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            overflow: hidden;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        .phone-mockup.active {
+            display: flex;
+        }
+
+        .sim-controls {
+            position: absolute;
+            bottom: 30px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .sim-button {
+            padding: 12px 24px;
+            background-color: var(--color-primary);
+            color: var(--color-background);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .sim-button:disabled { background-color: #555; color: #888; cursor: not-allowed; }
+        
+        /* --- Prototype 1: Core Styles --- */
+        #core-container { justify-content: center; }
+        #energy-core {
+            position: absolute; width: 100px; height: 100px; border-radius: 50%;
+            background: radial-gradient(circle, var(--color-primary), transparent 60%);
+            transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1); filter: blur(5px); opacity: 0.7;
+        }
+        #energy-core.idle { animation: core-breathe 5s infinite ease-in-out; }
+        @keyframes core-breathe { 0%, 100% { transform: scale(1); opacity: 0.7; } 50% { transform: scale(1.1); opacity: 1; } }
+        #energy-core.listening { animation: core-listen 1.2s infinite cubic-bezier(0.45, 0.05, 0.55, 0.95); }
+        @keyframes core-listen { 0%, 100% { transform: scale(1.2, 1.2); } 50% { transform: scale(0.9, 0.9); } }
+        #energy-core.thinking {
+            animation: core-spin 2s infinite linear; transform-origin: center;
+            background: conic-gradient(from 0deg, transparent, var(--color-primary)); filter: blur(10px);
+        }
+        @keyframes core-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        #energy-core.confirming { transform: scale(3); filter: blur(25px); opacity: 0.5; }
+        #energy-core.done { transform: scale(0); opacity: 0; }
+        #status-text { position: absolute; bottom: 100px; font-size: 1.1rem; color: #a0aec0; transition: opacity 0.5s ease; text-align: center; }
+        #tool-card {
+            position: absolute; width: 85%; padding: 24px; background: var(--color-card-bg); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            border-radius: var(--border-radius); border: 1px solid rgba(255, 255, 255, 0.1); box-sizing: border-box; display: flex; flex-direction: column;
+            align-items: center; gap: 16px; opacity: 0; transform: translateY(50px) scale(0.95); transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1); pointer-events: none;
+        }
+        #tool-card.visible { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+        #tool-card .icon { font-size: 40px; }
+        #tool-card .title { font-size: 1.4rem; font-weight: 500; }
+        #tool-card .description { font-size: 1rem; color: #a0aec0; text-align: center; margin-bottom: 16px; }
+        .card-buttons { display: flex; width: 100%; gap: 12px; }
+        .card-button { flex-grow: 1; padding: 14px; border-radius: 12px; border: none; font-size: 1rem; font-weight: 500; cursor: pointer; transition: all 0.3s ease; }
+        .confirm-btn { background-color: var(--color-primary); color: var(--color-background); }
+        .cancel-btn { background-color: rgba(255, 255, 255, 0.1); color: var(--color-text); }
+        
+        /* --- Prototype 2: Stream Styles --- */
+        #stream-container { justify-content: flex-end; padding-bottom: 100px; }
+        #stream-content { width: 100%; display: flex; flex-direction: column; gap: 1rem; max-height: 100%; overflow-y: auto; padding: 0 10px; }
+        .stream-item { padding: 10px 15px; border-radius: 12px; max-width: 80%; opacity: 0; animation: stream-fade-in 0.8s forwards; }
+        @keyframes stream-fade-in { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .stream-item.user { background: var(--color-primary); color: var(--color-background); align-self: flex-end; }
+        .stream-item.ai { background-color: #2D3748; color: var(--color-text); align-self: flex-start; }
+        .stream-item.ai.confirm { border: 2px solid var(--color-primary); background-color: #4A5568; }
+        .stream-item-buttons { display: flex; gap: 10px; margin-top: 10px; }
+        .stream-item-buttons button { background: var(--color-primary); color: var(--color-background); border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; }
+        
+        /* --- Prototype 3: Atlas Styles --- */
+        #atlas-container { justify-content: center; }
+        .atlas-node {
+            position: absolute; padding: 10px 15px; background: #2D3748; border-radius: 50px;
+            transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1); opacity: 0; transform: scale(0.5);
+            border: 1px solid var(--color-primary);
+        }
+        .atlas-node.center { font-weight: bold; transform: scale(1.2); background: var(--color-primary); color: var(--color-background); }
+        .atlas-line { position: absolute; height: 2px; background: var(--color-primary); opacity: 0.5; transform-origin: left center; }
+    </style>
+</head>
+<body>
+
+    <header class="header-info">
+        <h1>AI-Agent 交互设计方案展板</h1>
+        <p>请点击下方标签，预览和体验不同的交互设计方案。</p>
+    </header>
+
+    <nav>
+        <button class="nav-button active" data-target="core-container">方案一：意识核心</button>
+        <button class="nav-button" data-target="stream-container">方案二：流式对话</button>
+        <button class="nav-button" data-target="atlas-container">方案三：认知图谱</button>
+    </nav>
+
+    <div id="core-container" class="phone-mockup active">
+        <div id="energy-core"></div>
+        <div id="status-text"></div>
+        <div id="tool-card">
+            <div class="icon">📞</div>
+            <div class="title">呼叫联系人</div>
+            <div class="description">即将呼叫 “妈妈”</div>
+            <div class="card-buttons">
+                <button class="card-button cancel-btn" onclick="core_reset()">取消</button>
+                <button class="card-button confirm-btn" onclick="core_confirm()">确认</button>
+            </div>
+        </div>
+        <div class="sim-controls">
+            <button id="core-sim-btn" class="sim-button" onclick="core_run()">模拟交互</button>
+        </div>
+    </div>
+    
+    <div id="stream-container" class="phone-mockup">
+         <div id="stream-content"></div>
+         <div class="sim-controls">
+             <button id="stream-sim-btn" class="sim-button" onclick="stream_run()">模拟交互</button>
+         </div>
+    </div>
+
+    <div id="atlas-container" class="phone-mockup">
+        <div id="atlas-content"></div>
+        <div class="sim-controls">
+            <button id="atlas-sim-btn" class="sim-button" onclick="atlas_run()">模拟交互</button>
+        </div>
+    </div>
+
+    <script>
+        const navButtons = document.querySelectorAll('.nav-button');
+        const prototypes = document.querySelectorAll('.phone-mockup');
+
+        navButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                navButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                
+                prototypes.forEach(proto => {
+                    if (proto.id === button.dataset.target) {
+                        proto.classList.add('active');
+                    } else {
+                        proto.classList.remove('active');
+                    }
+                });
+            });
+        });
+
+        let timeouts = [];
+        const clearAllTimeouts = () => {
+            timeouts.forEach(clearTimeout);
+            timeouts = [];
+        };
+
+        // --- Core Logic ---
+        const core_setState = (state, text) => {
+            document.getElementById('energy-core').className = state;
+            document.getElementById('status-text').innerText = text;
+        };
+        const core_reset = () => {
+            clearAllTimeouts();
+            core_setState('idle', '准备就绪');
+            document.getElementById('tool-card').classList.remove('visible');
+            document.getElementById('core-sim-btn').disabled = false;
+        };
+        const core_confirm = () => {
+            document.getElementById('tool-card').classList.remove('visible');
+            core_setState('thinking', '正在执行...');
+            timeouts.push(setTimeout(() => core_setState('done', '任务已完成'), 1500), setTimeout(core_reset, 3000));
+        };
+        const core_run = () => {
+            document.getElementById('core-sim-btn').disabled = true;
+            clearAllTimeouts();
+            core_setState('listening', '正在倾听...');
+            timeouts.push(setTimeout(() => core_setState('thinking', '正在理解...'), 2000));
+            timeouts.push(setTimeout(() => {
+                core_setState('confirming', '请确认操作');
+                document.getElementById('tool-card').classList.add('visible');
+            }, 3500));
+        };
+        core_reset();
+
+        // --- Stream Logic ---
+        const streamContent = document.getElementById('stream-content');
+        const streamBtn = document.getElementById('stream-sim-btn');
+        const stream_reset = () => {
+            clearAllTimeouts();
+            streamContent.innerHTML = '';
+            streamBtn.disabled = false;
+        };
+        const stream_run = () => {
+            stream_reset();
+            streamBtn.disabled = true;
+            const steps = [
+                { type: 'user', text: '帮我给妈妈打个电话' },
+                { type: 'ai', text: '好的，正在解析指令...' },
+                { type: 'ai', text: '意图: "呼叫", 目标: "妈妈"' },
+                { type: 'ai', text: '找到联系人 "妈妈"', confirm: true }
+            ];
+            steps.forEach((step, index) => {
+                timeouts.push(setTimeout(() => {
+                    const item = document.createElement('div');
+                    item.className = `stream-item ${step.type}`;
+                    item.innerText = step.text;
+                    if (step.confirm) {
+                        item.classList.add('confirm');
+                        const buttons = document.createElement('div');
+                        buttons.className = 'stream-item-buttons';
+                        buttons.innerHTML = `<button onclick="stream_confirm()">确认</button><button onclick="stream_reset()">取消</button>`;
+                        item.appendChild(buttons);
+                    }
+                    streamContent.appendChild(item);
+                    streamContent.scrollTop = streamContent.scrollHeight;
+                }, index * 1500));
+            });
+        };
+        const stream_confirm = () => {
+             const steps = [
+                { type: 'ai', text: '正在呼叫...' },
+                { type: 'ai', text: '通话已连接' }
+            ];
+             steps.forEach((step, index) => {
+                timeouts.push(setTimeout(() => {
+                    const item = document.createElement('div');
+                    item.className = `stream-item ${step.type}`;
+                    item.innerText = step.text;
+                    streamContent.appendChild(item);
+                    streamContent.scrollTop = streamContent.scrollHeight;
+                }, index * 1000));
+            });
+            timeouts.push(setTimeout(stream_reset, 3000));
+        };
+
+        // --- Atlas Logic ---
+        const atlasContent = document.getElementById('atlas-content');
+        const atlasBtn = document.getElementById('atlas-sim-btn');
+        const atlas_reset = () => {
+            clearAllTimeouts();
+            atlasContent.innerHTML = '';
+            atlasBtn.disabled = false;
+        }
+        const atlas_run = () => {
+            atlas_reset();
+            atlasBtn.disabled = true;
+            const center = { x: 165, y: 340 };
+            const nodes = [
+                { text: 'AI', isCenter: true, x: center.x, y: center.y },
+                { text: '呼叫', x: center.x - 100, y: center.y - 80 },
+                { text: '联系人', x: center.x + 100, y: center.y - 80 },
+                { text: '妈妈', x: center.x + 100, y: center.y + 40, isFinal: true }
+            ];
+            
+            nodes.forEach((node, index) => {
+                timeouts.push(setTimeout(() => {
+                    const nodeEl = document.createElement('div');
+                    nodeEl.className = 'atlas-node';
+                    if (node.isCenter) nodeEl.classList.add('center');
+                    nodeEl.innerText = node.text;
+                    nodeEl.style.left = `${node.x - node.text.length * 8}px`;
+                    nodeEl.style.top = `${node.y}px`;
+                    
+                    if (!node.isCenter) {
+                         const line = document.createElement('div');
+                         line.className = 'atlas-line';
+                         const angle = Math.atan2(node.y - center.y, node.x - center.x) * 180 / Math.PI;
+                         const distance = Math.sqrt(Math.pow(node.x - center.x, 2) + Math.pow(node.y - center.y, 2));
+                         line.style.width = `${distance}px`;
+                         line.style.left = `${center.x}px`;
+                         line.style.top = `${center.y + 15}px`;
+                         line.style.transform = `rotate(${angle}deg)`;
+                         atlasContent.appendChild(line);
+                    }
+                    atlasContent.appendChild(nodeEl);
+                    requestAnimationFrame(()=> { nodeEl.style.opacity = 1; nodeEl.style.transform = 'scale(1)'; });
+
+                    if(node.isFinal) {
+                        timeouts.push(setTimeout(() => {
+                           const confirmBtn = document.createElement('button');
+                           confirmBtn.innerText = '确认呼叫';
+                           confirmBtn.className = 'sim-button';
+                           confirmBtn.style.position = 'absolute';
+                           confirmBtn.style.bottom = '30px';
+                           confirmBtn.onclick = () => { atlasContent.innerHTML = '<div style="font-size: 1.5rem; color: var(--color-primary);">呼叫已连接</div>'; timeouts.push(setTimeout(atlas_reset, 2000)); };
+                           atlasContent.appendChild(confirmBtn);
+                        }, 1000));
+                    }
+                }, index * 1200));
+            });
+        };
+    </script>
+
+</body>
+</html>
