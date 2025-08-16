@@ -1,7 +1,7 @@
-# Echo 智能语音 AI-Agent 开放平台
+# Echo 智能语音 AI-Agent 后端服务
 
 ## 项目简介
-Echo是一个基于Python(FastAPI)后端和React前端的智能语音AI-Agent开放平台，支持语音全流程交互、意图识别、工具调用等功能。系统可集成MCP服务和各类HTTP API，实现丰富的技能服务。
+Echo是一个基于Python(FastAPI)的智能语音AI-Agent后端服务平台，支持语音全流程交互、意图识别、工具调用等功能。系统可集成MCP服务和各类HTTP API，实现丰富的技能服务。
 
 ## 主要特性
 - **语音全流程交互**：支持语音输入、意图识别、语音合成输出
@@ -15,11 +15,11 @@ Echo是一个基于Python(FastAPI)后端和React前端的智能语音AI-Agent开
 
 ## 技术栈
 - **后端**：Python 3.9+, FastAPI, SQLAlchemy, Alembic, Pydantic
-- **前端**：React, Material UI, Web Speech API
 - **数据库**：MySQL
 - **AI服务**：兼容OpenAI API的LLM服务
 - **认证**：JWT
 - **部署**：Uvicorn, PM2
+- **MCP集成**：支持多种MCP服务器（区块链、地图、语音等）
 
 ## 项目结构
 ```
@@ -39,32 +39,31 @@ project/
 │   ├── logs/              # 日志文件
 │   ├── scripts/           # 辅助脚本
 │   ├── tests/             # 测试代码
-│   ├── .env.example       # 环境变量示例
+│   ├── .env.example       # 环境变量示例 ⚠️ 必须配置
 │   └── requirements.txt   # 依赖包列表
-├── frontend/              # 前端项目
-│   ├── public/            # 静态资源
-│   ├── src/               # 源代码
-│   │   ├── components/    # UI组件
-│   │   ├── contexts/      # React上下文
-│   │   ├── hooks/         # 自定义钩子
-│   │   ├── pages/         # 页面组件
-│   │   ├── services/      # API服务
-│   │   ├── styles/        # 样式文件
-│   │   └── utils/         # 工具函数
-│   └── package.json       # 依赖配置
 ├── MCP_Client/            # MCP客户端（Python）
 │   ├── config/            # MCP配置
+│   │   └── mcp_servers.json.example  # MCP服务器配置示例 ⚠️ 必须配置
 │   └── src/               # MCP客户端源码
+├── MCP_server/            # MCP服务器实现
+│   ├── minimax-mcp-js/    # MiniMax语音API服务器
+│   └── web3-mcp/          # Web3区块链服务器
+├── MCPTEST/               # MCP测试工具
 ├── docs/                  # 项目文档
-├── logs/                  # 项目日志
-└── .env.example           # 环境变量示例
+│   ├── 产品开发需求文档PRD.md
+│   ├── 后端开发文档.md
+│   ├── 前后端对接与API规范.md
+│   └── 待开发功能点集合.md
+├── outputs/               # 输出文件目录
+└── README.md              # 项目说明
 ```
 
 ## 安装与配置
 
+⚠️ **重要提醒：本项目需要正确配置多个环境变量文件才能正常运行！**
+
 ### 依赖环境
 - Python 3.9+
-- Node.js 16+
 - MySQL 5.7+
 - (推荐)虚拟环境管理工具：venv, uv等
 
@@ -88,19 +87,21 @@ venv\Scripts\activate  # Windows
 pip install -r requirements.txt
 ```
 
-4. 配置环境变量
+4. **⚠️ 配置后端环境变量（必须）**
 ```bash
 cp .env.example .env
 # 编辑.env文件，设置数据库连接、API密钥等
-```
-
-5. 配置环境变量
-```bash
-# 编辑.env文件，设置必要的配置项
 vim .env
 ```
 
-主要配置项包括：数据库连接、LLM API密钥、JWT密钥等。详细配置说明请参考：[后端开发文档](docs/后端开发文档.md)
+**关键配置项（必须设置）：**
+- `DATABASE_URL` - MySQL数据库连接字符串
+- `JWT_SECRET` - JWT密钥（生产环境必须设置）
+- `LLM_API_KEY` - 大语言模型API密钥
+- `LLM_MODEL` - 使用的模型名称
+- `LLM_API_BASE` - LLM API基础URL
+
+详细配置说明请参考：[后端开发文档](docs/后端开发文档.md)
 
 6. 数据库迁移
 ```bash
@@ -108,24 +109,9 @@ cd backend
 alembic upgrade head
 ```
 
-### 前端安装与配置
-1. 进入前端目录
-```bash
-cd project/frontend
-```
 
-2. 安装依赖
-```bash
-npm install
-```
 
-3. 配置环境变量
-```bash
-cp .env.example .env
-# 编辑.env文件，设置API路径等
-```
-
-### MCP_Client 配置
+### **⚠️ MCP_Client 配置（必须）**
 1. 进入MCP_Client目录
 ```bash
 cd project/MCP_Client
@@ -144,6 +130,20 @@ source .venv/bin/activate  # Linux/macOS
 pip install openai python-dotenv
 pip install git+https://github.com/modelcontextprotocol/python-sdk.git
 ```
+
+4. **⚠️ 配置MCP服务器（必须）**
+```bash
+cd config
+cp mcp_servers.json.example mcp_servers.json
+# 编辑mcp_servers.json文件，配置各种MCP服务器
+vim mcp_servers.json
+```
+
+**关键配置项（必须设置）：**
+- `MINIMAX_API_KEY` - MiniMax语音API密钥
+- `AMAP_MAPS_API_KEY` - 高德地图API密钥
+- `SOLANA_RPC_URL` - Solana区块链RPC地址
+- 各MCP服务器的启用状态和参数配置
 
 ## 启动服务
 
@@ -169,29 +169,7 @@ pm2 start ecosystem.config.js
 ./start-pm2.sh
 ```
 
-### 启动前端服务
-
-```bash
-# 开发模式（Mock数据，无需后端）
-./start-frontend.sh start dev
-
-# 生产模式（自动检测后端进程）
-./start-frontend.sh start prod
-
-# 查看状态和日志
-./start-frontend.sh status
-./start-frontend.sh logs
-
-# 停止服务
-./start-frontend.sh stop
-
-# 查看帮助
-./start-frontend.sh help
-```
-
-**核心特性：** 智能后端检测、自动端口分配、多模式启动、实时监控
-
-### 直接启动MCP_Client（可选）
+### 启动MCP_Client（可选）
 ```bash
 cd MCP_Client
 # 启动并连接到指定MCP服务器
@@ -206,7 +184,7 @@ python src/mcp/client/main.py <path_to_server_script>
 - **API文档**: `http://localhost:3000/docs` (Swagger UI)
 - **认证方式**: JWT Bearer Token
 
-详细的API接口说明请参考：[前后端对接与API规范](docs/前后端对接与API规范.md)
+详细的API接口说明请参考：[API规范文档](docs/前后端对接与API规范.md)
 
 ## 支持的工具类型
 
@@ -263,8 +241,7 @@ HTTP工具允许系统调用外部HTTP API来执行操作。目前支持以下�
 
 详细的开发指南请参考：
 - [后端开发文档](docs/后端开发文档.md) - 后端开发者专用
-- [前后端对接与API规范](docs/前后端对接与API规范.md) - 前端开发者必读
-- [前端开发文档](docs/前端开发文档.md) - 前端开发指南
+- [API规范文档](docs/前后端对接与API规范.md) - API接口详细说明
 
 ## 测试与调试
 
@@ -299,9 +276,10 @@ pytest
 
 ## 文档导航
 
-- [前后端对接与API规范](docs/前后端对接与API规范.md) - API接口详细说明和调用示例
+- [API规范文档](docs/前后端对接与API规范.md) - API接口详细说明和调用示例
 - [后端开发文档](docs/后端开发文档.md) - 后端架构、服务和开发指南
-- [前端开发文档](docs/前端开发文档.md) - 前端组件和开发规范
+- [产品需求文档](docs/产品开发需求文档PRD.md) - 产品功能需求和规划
+- [待开发功能点](docs/待开发功能点集合.md) - 功能开发计划
 
 ---
 
