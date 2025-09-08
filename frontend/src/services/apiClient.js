@@ -1,6 +1,15 @@
 import axios from 'axios';
+import { replaceContactsInText, replaceContactsInParams } from '../utils/addressBook';
+
+const isDev = process.env.NODE_ENV === 'development';
+// 开发环境：走 CRA 代理（相对路径 /api/...），避免 CORS
+// 生产环境：使用环境变量或线上地址
+const API_URL = isDev
+  ? ''
+  : (process.env.REACT_APP_API_URL || process.env.REACT_APP_API_BASE_URL || 'https://xkvwqhdfaegy.sealosgzg.site');
 
 const api = axios.create({
+  baseURL: API_URL,
   timeout: 15000, 
 });
 
@@ -70,48 +79,77 @@ const setAuthToken = (token) => {
 
 // 用户登录
 const login = async (username, password) => {
-  try {
-    const response = await api.post('/api/auth/login', {
-      username,
-      password
-    });
-    
-    // 确保返回成功状态和处理用户角色
-    return {
-      success: true,
-      token: response.data.access_token,
-      user: {
-        id: response.data.user_id,
-        username: response.data.username,
-        role: response.data.role || 'user' // 确保获取角色信息，默认为user
+  const form = new URLSearchParams();
+  form.append('username', username);
+  form.append('password', password);
+
+  const endpoints = [
+    '/api/v1/auth/login',
+    '/api/v1/auth/token', // 兼容部分后端使用 /token
+  ];
+
+  let lastError = null;
+  for (const endpoint of endpoints) {
+    try {
+      const response = await api.post(endpoint, form, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+
+      const data = response.data || {};
+      const token = data.access_token || data.token || data.jwt || (data.data && data.data.token);
+      const user = data.user || {
+        id: data.user_id ?? data.id,
+        username: data.username,
+        role: (data.role || (data.user && data.user.role)) || 'user'
+      };
+
+      if (!token) {
+        return {
+          success: false,
+          message: data.message || '登录返回中未包含 token'
+        };
       }
-    };
-  } catch (error) {
-    console.error('登录失败:', error);
-    return {
-      success: false,
-      message: error.message || '登录失败，请稍后再试'
-    };
+
+      return {
+        success: true,
+        token,
+        user
+      };
+    } catch (error) {
+      lastError = error;
+      // 遇到 404 或 Cannot POST 时尝试下一个候选端点
+      const status = error?.originalError?.response?.status;
+      const htmlText = error?.originalError?.response?.data;
+      const isNotFound = status === 404 || (typeof htmlText === 'string' && /Cannot\s+POST/i.test(htmlText));
+      if (!isNotFound) break;
+    }
   }
+
+  console.error('登录失败:', lastError);
+  return {
+    success: false,
+    message: (lastError && lastError.message) || '登录失败，请稍后再试'
+  };
 };
 
 // 用户注册
 const register = async (username, password, email) => {
   try {
-    const response = await api.post('/api/auth/register', {
+    const response = await api.post('/api/v1/auth/register', {
       username,
       password,
       email
     });
-    
-    // 确保返回成功状态和处理用户角色
+
+    const data = response.data || {};
     return {
       success: true,
-      user: {
-        id: response.data.id,
-        username: response.data.username,
-        role: response.data.role || 'user' // 确保获取角色信息，默认为user
-      }
+      user: data.user || {
+        id: data.id,
+        username: data.username,
+        role: data.role || 'user'
+      },
+      token: data.access_token || data.token
     };
   } catch (error) {
     console.error('注册失败:', error);
@@ -125,34 +163,60 @@ const register = async (username, password, email) => {
 // 获取用户信息
 const getUserInfo = async () => {
   try {
-    const response = await api.get('/api/auth/me');
-    return response.data;
+    const response = await api.get('/api/v1/auth/me');
+    const data = response.data || {};
+    const user = data.user || {
+      id: data.id ?? data.user_id,
+      username: data.username,
+      role: data.role || 'user'
+    };
+    return { success: true, user };
   } catch (error) {
     console.error('获取用户信息失败:', error);
-    throw error;
+    return { success: false, message: error.message || '获取用户信息失败' };
   }
 };
 
 // 刷新令牌
 const refreshToken = async () => {
   try {
-    const response = await api.post('/api/auth/refresh');
-    return response.data;
+    const response = await api.post('/api/v1/auth/refresh');
+    const data = response.data || {};
+    const token = data.access_token || data.token || data.jwt;
+    const user = data.user || {
+      id: data.id ?? data.user_id,
+      username: data.username,
+      role: data.role || 'user'
+    };
+    if (!token) return { success: false, message: '刷新失败，未返回 token' };
+    return { success: true, token, user };
   } catch (error) {
     console.error('刷新令牌失败:', error);
-    throw error;
+    return { success: false, message: error.message || '刷新令牌失败' };
   }
 };
 
 // 原有的API方法
 
+// 健康检查
+const getHealth = async () => {
+  try {
+    const response = await api.get('/api/v1/mcp/health');
+    return response.data; // 期望: { success: boolean, data: { servers: {...}, summary: {...} } }
+  } catch (error) {
+    console.error('健康检查失败:', error);
+    throw error;
+  }
+};
+
 const interpret = async (transcript, sessionId, userId) => {
     try {
         console.log(`发送interpret请求，携带sessionId: ${sessionId}`);
-        const response = await api.post('/api/v1/interpret', {
-            query: transcript, 
-            sessionId: sessionId,
-            userId: userId,
+        const processedTranscript = replaceContactsInText(transcript);
+        const response = await api.post('/api/v1/intent/interpret', {
+            query: processedTranscript,
+            session_id: sessionId || null,
+            user_id: userId != null ? Number(userId) : undefined,
         });
         console.log(`收到interpret响应:`, response.data);
         
@@ -181,21 +245,21 @@ const execute = async (toolId, params, sessionId, userId) => {
             throw new Error('参数必须是一个对象');
         }
         
-        // 确保userId是字符串类型
-        const userIdStr = userId ? String(userId) : null;
+        // 确保 user_id 为数字类型
+        const userIdNum = userId != null ? Number(userId) : undefined;
         
         console.log(`发送execute请求，携带sessionId: ${sessionId}`);
         
         // 确保后端请求参数严格符合后端ExecuteRequest模型
         const requestData = {
             tool_id: toolId,
-            params: params,
-            sessionId: sessionId, // 使用sessionId作为会话ID字段
+            params: replaceContactsInParams(params),
+            session_id: sessionId,
         };
         
         // 只有在有userId值的情况下才添加此字段，并使用user_id字段名
-        if (userIdStr) {
-            requestData.user_id = userIdStr;
+        if (userIdNum !== undefined && !Number.isNaN(userIdNum)) {
+            requestData.user_id = userIdNum;
         }
         
         console.log("准备发送execute请求数据:", requestData);
@@ -250,7 +314,7 @@ const getToolById = async (toolId) => {
 const getDeveloperServices = async () => {
   try {
     console.log("获取开发者服务列表...");
-    const response = await api.get('/api/dev/tools');
+    const response = await api.get('/api/v1/dev/tools');
     console.log("开发者服务列表响应:", response.data);
     return response.data.services;
   } catch (error) {
@@ -263,7 +327,7 @@ const getDeveloperServices = async () => {
 const createDeveloperService = async (serviceData) => {
   try {
     console.log("创建新服务...", serviceData);
-    const response = await api.post('/api/dev/tools', serviceData);
+    const response = await api.post('/api/v1/dev/tools', serviceData);
     console.log("创建服务响应:", response.data);
     return response.data;
   } catch (error) {
@@ -276,7 +340,7 @@ const createDeveloperService = async (serviceData) => {
 const getDeveloperServiceById = async (serviceId) => {
   try {
     console.log(`获取开发者服务ID: ${serviceId} 的详情`);
-    const response = await api.get(`/api/dev/tools/${serviceId}`);
+    const response = await api.get(`/api/v1/dev/tools/${serviceId}`);
     console.log("开发者服务详情响应:", response.data);
     return response.data;
   } catch (error) {
@@ -289,7 +353,7 @@ const getDeveloperServiceById = async (serviceId) => {
 const updateDeveloperService = async (serviceId, updateData) => {
   try {
     console.log(`更新开发者服务ID: ${serviceId}`, updateData);
-    const response = await api.put(`/api/dev/tools/${serviceId}`, updateData);
+    const response = await api.put(`/api/v1/dev/tools/${serviceId}`, updateData);
     console.log("更新服务响应:", response.data);
     return response.data;
   } catch (error) {
@@ -302,7 +366,7 @@ const updateDeveloperService = async (serviceId, updateData) => {
 const deleteDeveloperService = async (serviceId) => {
   try {
     console.log(`删除开发者服务ID: ${serviceId}`);
-    const response = await api.delete(`/api/dev/tools/${serviceId}`);
+    const response = await api.delete(`/api/v1/dev/tools/${serviceId}`);
     console.log("删除服务响应:", response.data);
     return response.data;
   } catch (error) {
@@ -311,11 +375,27 @@ const deleteDeveloperService = async (serviceId) => {
   }
 };
 
+// 获取开发者工具列表（带分页与筛选）
+const getDeveloperTools = async ({ page = 1, pageSize = 10, status, isPublic, search } = {}) => {
+  try {
+    const params = { page, page_size: pageSize };
+    if (status) params.status = status;
+    if (typeof isPublic === 'boolean') params.is_public = isPublic;
+    if (search) params.search = search;
+
+    const response = await api.get('/api/v1/dev/tools', { params });
+    return response.data; // 期望结构: { tools: [...], total, page, page_size }
+  } catch (error) {
+    console.error('获取开发者工具列表失败:', error);
+    throw error;
+  }
+};
+
 // 上传API包
 const uploadApiPackage = async (formData) => {
   try {
     console.log("上传API包...");
-    const response = await api.post('/api/dev/upload', formData, {
+    const response = await api.post('/api/v1/dev/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -332,7 +412,7 @@ const uploadApiPackage = async (formData) => {
 const getDeveloperApplications = async () => {
   try {
     console.log("获取开发者应用列表...");
-    const response = await api.get('/api/dev/apps');
+    const response = await api.get('/api/v1/dev/apps');
     console.log("开发者应用列表响应:", response.data);
     return response.data.applications;
   } catch (error) {
@@ -345,7 +425,7 @@ const getDeveloperApplications = async () => {
 const createDeveloperApplication = async (applicationData) => {
   try {
     console.log("创建新应用...", applicationData);
-    const response = await api.post('/api/dev/apps', applicationData);
+    const response = await api.post('/api/v1/dev/apps', applicationData);
     console.log("创建应用响应:", response.data);
     return response.data;
   } catch (error) {
@@ -358,7 +438,7 @@ const createDeveloperApplication = async (applicationData) => {
 const testSavedApiService = async (serviceId, testData) => {
   try {
     console.log(`测试已保存的开发者服务ID: ${serviceId}`, testData);
-    const response = await api.post(`/api/dev/tools/${serviceId}/test`, testData);
+    const response = await api.post(`/api/v1/dev/tools/${serviceId}/test`, testData);
     console.log("测试服务响应:", response.data);
     return response.data;
   } catch (error) {
@@ -375,7 +455,7 @@ const testUnsavedDeveloperTool = async (toolConfiguration) => {
     console.log("测试未保存的服务配置:", toolConfiguration);
     // This endpoint /api/dev/tools/test is NEW and needs to be implemented in the backend
     // and mocked in MSW. It receives the full tool config and test input.
-    const response = await api.post('/api/dev/tools/test', toolConfiguration);
+    const response = await api.post('/api/v1/dev/tools/test', toolConfiguration);
     console.log("测试未保存的服务响应:", response.data);
     return response.data; // Expected: { success: boolean, raw_response?: any, error?: string }
   } catch (error) {
@@ -415,6 +495,8 @@ const apiClientInstance = {
   createDeveloperApplication,
   testSavedApiService,          // Renamed original testApiService
   testUnsavedDeveloperTool,     // Added new method
+  getHealth,
+  getDeveloperTools,
 };
 
 export default apiClientInstance; 

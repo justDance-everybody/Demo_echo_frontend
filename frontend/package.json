@@ -14,11 +14,12 @@
     "react-router-dom": "^6.10.0",
     "react-scripts": "5.0.1",
     "styled-components": "^5.3.9",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "http-proxy-middleware": "^2.0.6"
   },
   "scripts": {
     "start": "react-scripts start",
-    "start:dev": "REACT_APP_USE_MOCKS=true react-scripts start",
+    "start:dev": "REACT_APP_USE_MOCKS=false react-scripts start",
     "start:mobile": "echo '启动移动端界面...' && react-scripts start",
     "start:public": "HOST=0.0.0.0 react-scripts start",
     "build": "react-scripts build",
@@ -53,7 +54,8 @@
     "cypress": "^14.3.3",
     "cypress-axe": "^1.6.0",
     "cypress-mochawesome-reporter": "^3.8.2",
-    "jest-axe": "^10.0.0"
+    "jest-axe": "^10.0.0",
+    "msw": "^1.3.5"
   },
   "jest": {
     "transformIgnorePatterns": [

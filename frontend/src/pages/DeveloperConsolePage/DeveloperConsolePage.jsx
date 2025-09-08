@@ -97,9 +97,8 @@ const DeveloperConsolePage = () => {
     setIsLoading(true);
     setError(null);
     try {
-      // apiClient should be configured to send auth token if required by the backend for /api/dev/tools
-      const response = await apiClient.get('/api/dev/tools'); 
-      setTools(response.data.tools || []);
+      const data = await apiClient.getDeveloperTools({ page: 1, pageSize: 10 });
+      setTools(data.tools || []);
     } catch (err) {
       console.error("Failed to fetch developer tools:", err);
       setError('无法加载您的工具，请稍后再试。');
