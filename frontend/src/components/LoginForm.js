@@ -1,5 +1,6 @@
 import React, { useState, useContext } from 'react';
-import { Form, Input, Button } from 'antd-mobile';
+import { Form, Input } from 'antd-mobile';
+import Button from './ui/button';
 import { UserOutline, LockOutline } from 'antd-mobile-icons';
 import { AuthContext } from '../contexts/AuthContext';
 import { toast } from './common/Toast';
@@ -92,19 +93,13 @@ const LoginForm = ({ onRegisterClick }) => {
         layout='horizontal'
         footer={
           <ButtonGroup>
-            <Button 
-              block 
-              color='primary' 
-              size='large'
-              loading={loading}
-              onClick={handleSubmit}
-            >
+            <Button block size='lg' loading={loading} variant='geek' onClick={handleSubmit}>
               登录
             </Button>
             <Button
               block
-              color='default'
-              size='large'
+              size='lg'
+              variant='geek'
               onClick={onRegisterClick}
             >
               没有账号？注册

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { Button, Toast, Skeleton } from 'antd-mobile';
+import { Toast, Skeleton } from 'antd-mobile';
+import Button from '../components/ui/button';
 import { 
   ClockCircleOutline,
   StarOutline,
@@ -94,21 +95,7 @@ const ServiceActions = styled.div`
 `;
 
 const ActionButton = styled(Button)`
-  &.adm-button {
-    --border-radius: var(--radius-md);
-    --border-width: 1px;
-    
-    &.favorite {
-      --background-color: var(--color-primary-light);
-      --text-color: var(--color-primary);
-      --border-color: var(--color-primary);
-      
-      &.active {
-        --background-color: var(--color-primary);
-        --text-color: white;
-      }
-    }
-  }
+  border-radius: var(--radius-md);
 `;
 
 const ContentSection = styled.section`
@@ -389,15 +376,12 @@ const ServiceDetailPage = () => {
           </ServiceInfo>
           
           <ServiceActions>
-            <ActionButton 
-              className={`favorite ${isFavorite ? 'active' : ''}`}
-              onClick={handleToggleFavorite}
-            >
+            <ActionButton variant="geek" onClick={handleToggleFavorite}>
               {isFavorite ? <HeartFill /> : <HeartOutline />}
               {isFavorite ? '已收藏' : '收藏'}
             </ActionButton>
             
-            <ActionButton color="primary" onClick={handleStartService}>
+            <ActionButton variant="geek" onClick={handleStartService}>
               开始使用
             </ActionButton>
           </ServiceActions>

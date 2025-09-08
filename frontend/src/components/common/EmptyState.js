@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from 'antd-mobile';
+import Button from '../ui/button';
 import styled from 'styled-components';
 import { SearchOutline, ExclamationOutline, ContentOutline } from 'antd-mobile-icons';
 
@@ -93,7 +93,7 @@ const EmptyState = ({
       <Title>{finalTitle}</Title>
       <Description>{finalDescription}</Description>
       {buttonText && (
-        <ActionButton color="primary" onClick={onButtonClick}>
+        <ActionButton variant="geek" onClick={onButtonClick}>
           {buttonText}
         </ActionButton>
       )}

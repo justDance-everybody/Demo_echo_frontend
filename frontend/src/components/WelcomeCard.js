@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { Button } from 'antd';
+import { Button } from './ui/button';
 import { AudioOutlined } from '@ant-design/icons';
 
 const WelcomeContainer = styled.div`
@@ -28,20 +28,10 @@ const WelcomeSubtitle = styled.p`
 `;
 
 const VoiceButton = styled(Button)`
-  background-color: #fff;
-  color: #1890ff;
-  border: none;
-  border-radius: 8px;
-  padding: 0 32px;
   height: 44px;
+  padding: 0 32px;
   font-size: 16px;
   font-weight: 500;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  
-  &:hover, &:focus {
-    background-color: #f8f8f8;
-    color: #1890ff;
-  }
 `;
 
 const DeviceImages = styled.div`
@@ -80,11 +70,8 @@ const WelcomeCard = ({ onStartVoice }) => {
       </DeviceImages>
       <WelcomeTitle>您好，我是您的智能助理</WelcomeTitle>
       <WelcomeSubtitle>遇到什么问题了吗？可以直接问我哦～</WelcomeSubtitle>
-      <VoiceButton 
-        icon={<AudioOutlined />} 
-        size="large"
-        onClick={onStartVoice}
-      >
+      <VoiceButton onClick={onStartVoice} className="gap-2">
+        <AudioOutlined />
         开始语音
       </VoiceButton>
     </WelcomeContainer>

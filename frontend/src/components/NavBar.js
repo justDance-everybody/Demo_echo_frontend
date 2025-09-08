@@ -12,8 +12,10 @@ const NavContainer = styled.nav`
   justify-content: space-between;
   align-items: center;
   padding: 1rem 2rem;
-  background-color: var(--nav-bg, var(--surface));
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  background-color: rgba(15, 22, 41, 0.7);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(0, 229, 255, 0.15);
+  box-shadow: 0 0 0 1px rgba(0, 229, 255, 0.08), 0 6px 24px rgba(124, 77, 255, 0.12);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -87,17 +89,19 @@ const ActionsArea = styled.div`
 
 // 按钮样式
 const Button = styled(Link)`
-  background-color: var(--primary-color);
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: var(--border-radius, 4px);
   text-decoration: none;
-  font-weight: 500;
-  transition: all 0.2s ease;
+  font-weight: 600;
+  color: #7ffcff;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid rgba(0,229,255,.4);
+  box-shadow: 0 0 0 1px rgba(0,229,255,.15) inset, 0 0 12px rgba(0,229,255,.12);
+  transition: all .2s ease;
   
   &:hover {
-    opacity: 0.9;
     transform: translateY(-2px);
+    box-shadow: 0 0 0 1px rgba(0,229,255,.25) inset, 0 0 18px rgba(0,229,255,.2);
+    background: rgba(0,229,255,.06);
   }
   
   @media (max-width: 768px) {

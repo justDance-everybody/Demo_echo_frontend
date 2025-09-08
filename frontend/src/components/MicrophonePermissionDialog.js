@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { Modal, Button, Steps, Alert, Space, Typography } from 'antd';
+import { Steps, Alert, Typography } from 'antd';
+import Modal from './ui/modal';
+import Button from './ui/button';
+import Space from './ui/space';
 import { 
   AudioOutlined, 
   SettingOutlined, 
@@ -230,12 +233,13 @@ const MicrophonePermissionDialog = ({
     <Modal
       title="🎙️ 语音功能设置"
       open={visible}
-      onCancel={onClose}
-      footer={renderFooter()}
+      onClose={onClose}
       width={520}
-      maskClosable={false}
     >
       {renderContent()}
+      <div className="mt-4 flex justify-end gap-2">
+        {renderFooter()}
+      </div>
     </Modal>
   );
 };

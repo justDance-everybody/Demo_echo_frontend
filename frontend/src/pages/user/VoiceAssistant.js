@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Card, Row, Col, Space, Divider, Spin } from 'antd';
+import { Row, Col } from 'antd';
+import Card from '../../components/ui/card';
+import Space from '../../components/ui/space';
+import Divider from '../../components/ui/divider';
+import Spinner from '../../components/ui/spinner';
 import { SoundOutlined, MenuOutlined } from '@ant-design/icons';
 import VoiceRecorder from '../../components/VoiceRecorder';
 import ProgressBar from '../../components/ProgressBar';
@@ -166,7 +170,7 @@ const VoiceAssistant = () => {
             <div style={{ textAlign: 'center', padding: '20px 0' }}>
               {stage === SessionStages.EXECUTING && (
                 <div style={{ marginBottom: '20px' }}>
-                  <Spin size="large" />
+                  <Spinner size="lg" />
                   <p style={{ marginTop: '10px', color: theme.textSecondary }}>
                     正在处理您的请求...
                   </p>
