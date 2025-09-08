@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { SearchBar, Tabs, Space, Grid, Button, Popup, Checkbox, Radio, Form, Divider } from 'antd-mobile';
+import Button from '../ui/button';
+import SearchBar from '../ui/searchbar';
+import Tabs from '../ui/tabs';
+import Popup from '../ui/popup';
+import Checkbox from '../ui/checkbox';
+import Space from '../ui/space';
 import { AppstoreOutline, UnorderedListOutline, FilterOutline, CloseOutline } from 'antd-mobile-icons';
 import ServiceCard from './ServiceCard';
 import EmptyState from './EmptyState';

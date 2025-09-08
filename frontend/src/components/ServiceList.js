@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Row, Col, Spin } from 'antd';
+import { Row, Col } from 'antd';
+import Spinner from './ui/spinner';
 import ServiceCard from './ServiceCard';
 import { serviceAPI } from '../service/api';
 
@@ -52,7 +53,10 @@ const ServiceList = ({ onServiceSelect }) => {
   if (loading) {
     return (
       <LoadingContainer>
-        <Spin size="large" tip="加载服务列表..." />
+        <div style={{ textAlign: 'center' }}>
+          <Spinner size="lg" />
+          <div style={{ marginTop: 8 }}>加载服务列表...</div>
+        </div>
       </LoadingContainer>
     );
   }

@@ -1,5 +1,6 @@
 import { createGlobalStyle } from 'styled-components';
 import './tokens.css'; // 导入设计令牌CSS
+import '../index.css'; // 引入 Tailwind 基础层，保持顺序在 tokens 后
 // 注意: Inter字体需要在index.html中通过<link>标签加载，而不是通过@import
 
 const GlobalStyles = createGlobalStyle`
@@ -11,9 +12,37 @@ const GlobalStyles = createGlobalStyle`
     -moz-osx-font-smoothing: grayscale;
     background-color: var(--background);
     color: var(--text);
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+      radial-gradient(ellipse at 20% 10%, rgba(124,77,255,0.06), transparent 40%),
+      radial-gradient(ellipse at 80% 20%, rgba(0,229,255,0.08), transparent 40%);
+    background-size: var(--grid-size) var(--grid-size), var(--grid-size) var(--grid-size), 100% 100%, 100% 100%;
+    background-attachment: fixed;
+    caret-color: var(--color-primary);
     transition: background-color var(--transition-normal), color var(--transition-normal);
     font-size: var(--font-size-md);
     line-height: var(--line-height-normal);
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,0.03) 0px,
+      rgba(255,255,255,0.03) 1px,
+      transparent 2px
+    );
+    animation: scanline-pan 12s linear infinite;
+    mix-blend-mode: overlay;
+  }
+
+  @keyframes scanline-pan {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(var(--grid-size)); }
   }
 
   code {
@@ -88,6 +117,8 @@ const GlobalStyles = createGlobalStyle`
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
     transition: box-shadow var(--transition-fast);
+    position: relative;
+    overflow: hidden;
   }
 
   .ant-card:hover {

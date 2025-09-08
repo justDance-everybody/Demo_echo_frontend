@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Card, Typography, Space, Button, Alert, Divider } from 'antd';
+import { Typography } from 'antd';
+import Card from '../components/ui/card';
+import Space from '../components/ui/space';
+import Divider from '../components/ui/divider';
+import Alert from '../components/ui/alert';
+import Button from '../components/ui/button';
 import { AudioOutlined, ExperimentOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useTheme } from '../contexts/ThemeContext';
 import VoiceInterface from '../components/VoiceInterface';
@@ -132,20 +137,13 @@ const VoiceFlowTestPage = () => {
         <Divider />
         
         <Space>
-          <Button 
-            type="primary" 
-            icon={<AudioOutlined />}
-            size="large"
-            onClick={startTest}
-            disabled={isTestRunning}
-          >
+          <Button onClick={startTest} disabled={isTestRunning} className="inline-flex items-center gap-2">
+            <AudioOutlined />
             {isTestRunning ? '测试进行中...' : '开始语音交互测试'}
           </Button>
           
           {testResults.length > 0 && (
-            <Button onClick={clearResults}>
-              清除测试结果
-            </Button>
+            <Button variant="secondary" onClick={clearResults}>清除测试结果</Button>
           )}
         </Space>
       </TestCard>

@@ -1,6 +1,10 @@
 import React, { useState, useContext, useRef, useEffect } from 'react';
 import styled from 'styled-components';
-import { message, Spin, Alert, Radio, Card, Space } from 'antd';
+import { message, Radio } from 'antd';
+import Card from './ui/card';
+import Space from './ui/space';
+import Spinner from './ui/spinner';
+import Alert from './ui/alert';
 import { AudioOutlined, AudioMutedOutlined, CloseOutlined, ApiOutlined, SmileOutlined, BankOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { ThemeContext } from '../theme/ThemeProvider';
@@ -127,6 +131,27 @@ const VoiceDialog = ({ isOpen, onClose, initialService }) => {
   useEffect(() => {
     if (isOpen) {
       fetchMCPServers();
+      // 打开即尝试开始录音（延迟少许，确保recognition已初始化）
+      setError(null);
+      const timer = setTimeout(() => {
+        if (recognitionRef.current) {
+          try {
+            recognitionRef.current.start();
+          } catch (e) {
+            console.error('自动启动语音识别失败:', e);
+          }
+        }
+      }, 150);
+      return () => clearTimeout(timer);
+    } else {
+      // 关闭时停止录音
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          console.error('停止语音识别失败:', e);
+        }
+      }
     }
   }, [isOpen]);
   
@@ -534,7 +559,7 @@ const VoiceDialog = ({ isOpen, onClose, initialService }) => {
           <h3 style={{ marginBottom: '12px' }}>选择AI服务:</h3>
           {loadingServers ? (
             <div style={{ textAlign: 'center', padding: '20px' }}>
-              <Spin size="small" />
+              <Spinner size="sm" />
               <p>加载服务列表...</p>
             </div>
           ) : mcpServers.length > 0 ? (
@@ -549,7 +574,7 @@ const VoiceDialog = ({ isOpen, onClose, initialService }) => {
         <DialogText theme={theme}>
           {isLoading ? (
             <div style={{ textAlign: 'center' }}>
-              <Spin size="large" />
+              <Spinner size="lg" />
               <p style={{ marginTop: 16 }}>{responseText || '正在处理...'}</p>
             </div>
           ) : isRecording ? (
@@ -560,7 +585,7 @@ const VoiceDialog = ({ isOpen, onClose, initialService }) => {
               </p>
             </>
           ) : (
-            responseText || '点击下方按钮开始语音对话'
+            responseText || '请开始说话…'
           )}
         </DialogText>
         
@@ -575,7 +600,7 @@ const VoiceDialog = ({ isOpen, onClose, initialService }) => {
         
         {!isRecording && !isLoading && !responseText && (
           <p style={{ textAlign: 'center', marginTop: '12px', fontSize: '12px', color: theme.secondaryTextColor }}>
-            点击麦克风图标开始语音对话
+            正在等待您的语音输入…
           </p>
         )}
       </DialogContent>

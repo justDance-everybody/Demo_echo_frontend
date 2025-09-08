@@ -1,7 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled, { css } from 'styled-components';
-import { Card, Tag, Button } from 'antd-mobile';
+import Button from '../ui/button';
+import Tag from '../ui/tag';
+import Card from '../ui/card';
 import { SetOutline, SoundOutline, ContentOutline, RightOutline } from 'antd-mobile-icons';
 
 // 共享样式
@@ -21,18 +23,7 @@ const cardStyles = css`
 const GridCard = styled(Card)`
   ${cardStyles}
   
-  .adm-card-header {
-    border-bottom: 1px solid var(--border);
-  }
-  
-  .adm-card-header-title {
-    font-weight: var(--font-weight-medium);
-    color: var(--text);
-  }
-  
-  .adm-card-body {
-    padding: var(--spacing-3);
-  }
+  padding: 0;
 `;
 
 // 列表卡片样式

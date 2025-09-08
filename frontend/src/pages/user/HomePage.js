@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Typography, Button, Space, Card, Row, Col, Spin, Layout, message } from 'antd';
+import { Typography, Row, Col, Layout, message } from 'antd';
+import Card from '../../components/ui/card';
+import Space from '../../components/ui/space';
+import Spinner from '../../components/ui/spinner';
+import Button from '../../components/ui/button';
 import { AudioOutlined, AudioMutedOutlined, ReloadOutlined, SearchOutlined, RobotOutlined, GlobalOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
 import axios from 'axios';
@@ -170,14 +174,8 @@ const HomePage = () => {
             </Typography.Paragraph>
           </Col>
           <Col>
-            <Button
-              type="primary"
-              icon={<AudioOutlined />}
-              size="large"
-              shape="round"
-              onClick={() => handleOpenVoiceDialog(null)}
-              ghost
-            >
+            <Button onClick={() => handleOpenVoiceDialog(null)} className="inline-flex items-center gap-2 bg-transparent border border-white text-white hover:bg-white hover:text-black">
+              <AudioOutlined />
               开始语音对话
             </Button>
           </Col>
@@ -186,7 +184,7 @@ const HomePage = () => {
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '40px' }}>
-          <Spin size="large" />
+          <Spinner size="lg" />
           <p style={{ marginTop: '16px' }}>正在加载服务...</p>
         </div>
       ) : (

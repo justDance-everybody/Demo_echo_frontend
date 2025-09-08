@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styled from 'styled-components';
-import { Card, Button, Progress, Alert, Space } from 'antd';
+import { Space } from 'antd';
+import Card from './ui/card';
+import Progress from './ui/progress';
+import Alert from './ui/alert';
+import Button from './ui/button';
 import { 
   AudioOutlined, 
   AudioMutedOutlined, 
@@ -197,15 +201,23 @@ const VoiceInterface = ({
     }
   }, [startListening, stopListening, resetVoice]);
   
-  // 播放确认文本并等待用户确认
+  // 播放确认文本并立即开始等待用户确认（不等待TTS播放完成）
   const speakConfirmation = useCallback(async (text) => {
-    return new Promise((resolve) => {
-      speak(text, 'zh-CN', 1, 1, () => {
-        // TTS播放完成后，开始等待用户确认
-        startListeningForConfirmation();
-        resolve();
-      });
-    });
+    try {
+      // 先开始监听用户确认
+      startListeningForConfirmation();
+    } catch (err) {
+      console.error('启动确认监听失败:', err);
+    }
+    try {
+      // 并行播放TTS（不阻塞监听）
+      if (text) {
+        speak(text, 'zh-CN', 1, 1);
+      }
+    } catch (err) {
+      console.error('TTS 播放失败:', err);
+    }
+    return true;
   }, [speak, startListeningForConfirmation]);
   
   // 执行操作
@@ -533,11 +545,11 @@ const VoiceInterface = ({
       {/* 错误提示 */}
       {error && (
         <Alert
-          type="error"
-          message={error}
-          closable
+          variant="error"
+          title="错误"
+          description={error}
           onClose={() => setError(null)}
-          style={{ marginBottom: 16 }}
+          className="mb-4"
         />
       )}
       
@@ -560,23 +572,16 @@ const VoiceInterface = ({
           {/* 确认按钮 (可选，也可以完全依赖语音) */}
           {mode === 'full' && (
             <Space style={{ marginTop: 16 }}>
-              <Button 
-                type="primary" 
-                icon={<CheckCircleOutlined />}
-                onClick={executeAction}
-              >
+              <Button onClick={executeAction} className="inline-flex items-center gap-2">
+                <CheckCircleOutlined />
                 确认
               </Button>
-              <Button 
-                icon={<CloseCircleOutlined />}
-                onClick={handleCancel}
-              >
+              <Button variant="secondary" onClick={handleCancel} className="inline-flex items-center gap-2">
+                <CloseCircleOutlined />
                 取消
               </Button>
-              <Button 
-                icon={<ReloadOutlined />}
-                onClick={handleRetryUpdated}
-              >
+              <Button variant="ghost" onClick={handleRetryUpdated} className="inline-flex items-center gap-2">
+                <ReloadOutlined />
                 重试
               </Button>
             </Space>
@@ -635,10 +640,7 @@ const VoiceInterface = ({
         
         {/* 重置按钮 */}
         {currentState !== STATES.IDLE && (
-          <Button 
-            style={{ marginLeft: 16 }}
-            onClick={resetSession}
-          >
+          <Button onClick={resetSession} className="ml-4">
             重新开始
           </Button>
         )}

@@ -1,6 +1,7 @@
 import React, { useState, useContext } from 'react';
 import styled from 'styled-components';
-import { Switch, Button } from 'antd';
+import Button from './ui/button';
+import Switch from './ui/switch';
 import { AudioOutlined, BulbOutlined, BulbFilled } from '@ant-design/icons';
 import { ThemeContext } from '../theme/ThemeProvider';
 import VoiceDialog from './VoiceDialog';
@@ -57,20 +58,14 @@ const Header = () => {
     <HeaderContainer>
       <Logo>Echo</Logo>
       <Controls>
-        <Button 
-          type="primary" 
-          icon={<AudioOutlined />}
-          shape="circle"
-          onClick={openVoiceDialog}
-        />
+        <Button aria-label="语音" onClick={openVoiceDialog} className="h-10 w-10 p-0 rounded-full">
+          <AudioOutlined />
+        </Button>
         <ThemeToggle>
           <ThemeIcon>
             {theme === 'dark' ? <BulbOutlined /> : <BulbFilled />}
           </ThemeIcon>
-          <Switch 
-            checked={theme === 'dark'} 
-            onChange={handleThemeChange} 
-          />
+          <Switch checked={theme === 'dark'} onCheckedChange={handleThemeChange} />
         </ThemeToggle>
       </Controls>
 
