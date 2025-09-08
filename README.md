@@ -58,8 +58,9 @@ cd frontend
 npm install
 
 # 配置后端连接（请根据实际部署配置）
-echo "REACT_APP_API_BASE_URL=your-backend-server" > .env
-echo "REACT_APP_API_PREFIX=/api/v1" >> .env
+echo "REACT_APP_API_PREFIX=/api/v1" > .env
+# 开发环境推荐使用 CRA 代理，避免 CORS；生产环境再设置后端地址
+# echo "REACT_APP_API_BASE_URL=https://xkvwqhdfaegy.sealosgzg.site" >> .env
 
 npm start
 # 打开浏览器访问 http://localhost:3000
@@ -297,6 +298,35 @@ const login = async (username, password) => {
   throw new Error('登录失败');
 };
 ```
+
+### 健康检查
+
+- 方法: `GET /api/v1/mcp/health`
+- 功能: 返回 MCP 相关服务的健康状态
+- 返回示例（application/json）:
+
+```json
+{
+  "success": true,
+  "data": {
+    "servers": {
+      "playwright": {"status":"running","restart_count":0,"consecutive_failures":0,"is_blacklisted":false},
+      "minimax-mcp-js": {"status":"running","restart_count":0,"consecutive_failures":0,"is_blacklisted":false},
+      "amap-maps": {"status":"running","restart_count":0,"consecutive_failures":0,"is_blacklisted":false},
+      "web3-rpc": {"status":"running","restart_count":0,"consecutive_failures":0,"is_blacklisted":false}
+    },
+    "summary": {"total":4,"running":4,"failed":0,"blacklisted":0}
+  }
+}
+```
+
+参考实现示例可见在线接口返回: [`/api/v1/mcp/health`](https://xkvwqhdfaegy.sealosgzg.site/api/v1/mcp/health)
+
+### 开发环境跨域（CORS）处理
+
+已内置 CRA 代理：`frontend/src/setupProxy.js`
+- 开发环境不设置 `REACT_APP_API_URL/REACT_APP_API_BASE_URL`，axios 将走相对路径 `/api/...`，由代理转发到 `https://xkvwqhdfaegy.sealosgzg.site`
+- 生产环境请设置 `REACT_APP_API_BASE_URL` 指向线上地址
 
 ### 完整AI交互示例
 

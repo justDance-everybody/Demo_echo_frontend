@@ -13,16 +13,8 @@ class Logger {
       this.logToFile = true;
       // Node.js环境中才尝试加载fs，这段代码在浏览器环境中永远不会执行
       // 将在构建时被剔除
-      try {
-        // 这里使用条件导入，避免webpack尝试打包fs模块
-        // 在服务端渲染时生效，浏览器中不执行
-        if (typeof process !== 'undefined' && process.versions && process.versions.node) {
-          this._fs = null; // 初始化为null，动态导入时再赋值
-        }
-      } catch (e) {
-        console.warn('无法加载fs模块，将不会写入日志文件');
-        this.logToFile = false;
-      }
+      // 浏览器构建不包含 fs，保持禁用文件写入
+      this.logToFile = false;
     }
   }
   
@@ -59,8 +51,7 @@ class Logger {
     // 文件记录功能在浏览器中被禁用
     // 只在Node.js环境中执行，浏览器中永远不会调用
     if (this.logToFile && typeof window === 'undefined') {
-      // 此处代码在浏览器中永远不会执行
-      // 将在构建时被剔除
+      // 浏览器环境不写文件；Node 环境可扩展
       this._writeToFile(logMessage, data);
     }
     
@@ -75,19 +66,8 @@ class Logger {
   
   // 仅在Node.js环境中使用的私有方法
   _writeToFile(logMessage, data) {
-    // 此方法在浏览器中永远不会被调用
-    if (typeof process !== 'undefined' && process.versions && process.versions.node) {
-      try {
-        // 懒加载fs模块
-        if (!this._fs) {
-          this._fs = require('fs');
-        }
-        const logEntry = `${logMessage} ${data ? JSON.stringify(data) : ''}\n`;
-        this._fs.appendFileSync(this.logPath, logEntry);
-      } catch (e) {
-        console.error('写入日志文件失败:', e);
-      }
-    }
+    // 去除对 'fs' 的静态依赖，避免浏览器构建报错
+    return;
   }
   
   /**

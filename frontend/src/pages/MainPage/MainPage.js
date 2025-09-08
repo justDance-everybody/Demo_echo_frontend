@@ -9,6 +9,7 @@ import ConfirmationModal from '../../components/ConfirmationModal';
 import ResultDisplay from '../../components/ResultDisplay';
 import { motion, AnimatePresence } from 'framer-motion';
 import './MainPage.css'; 
+import { toast } from '../../components/common/Toast';
 import useIntent from '../../hooks/useIntent';
 
 console.log('Test persistence');
@@ -200,15 +201,14 @@ const MainPage = () => {
 
             if (execResult.success && execResult.data) {
                 console.log(`[Session: ${execResult.sessionId || currentSessionId}] Tool execution successful.`);
-                setResultData({ status: 'success', data: execResult.data });
                 setStatus('speaking');
                 
-                // 优化播报内容选择
+                // 优化播报内容选择（优先使用 tts_message）
                 let textToSpeak;
-                if (execResult.data.summary) {
-                    textToSpeak = execResult.data.summary;
-                } else if (execResult.data.tts_message) {
+                if (execResult.data.tts_message) {
                     textToSpeak = execResult.data.tts_message;
+                } else if (execResult.data.summary) {
+                    textToSpeak = execResult.data.summary;
                 } else if (typeof execResult.data === 'string') {
                     textToSpeak = execResult.data;
                 } else if (execResult.data.result || execResult.data.message) {
@@ -231,11 +231,18 @@ const MainPage = () => {
                                           .join(', ');
                     textToSpeak = simpleString || "操作成功，但没有提供详细信息";
                 }
+
+                // 将正文 message 强制设置为 tts_message/summary，避免默认文案
+                const uiMessage = (execResult.data.tts_message && String(execResult.data.tts_message).trim())
+                  || (execResult.data.summary && String(execResult.data.summary).trim())
+                  || undefined;
+                setResultData({ status: 'success', data: execResult.data, message: uiMessage });
                 
                 console.log(`[Session: ${execResult.sessionId || currentSessionId}] 即将播报结果: "${textToSpeak}"`);
                 
                 // 使用增强的流式语音播报，确保状态正确更新
-                speak(textToSpeak, resetUIState);
+                // 仅在播报完成后将状态置为 idle，不立即清空结果，方便用户查看
+                speak(textToSpeak, () => setStatus('idle'));
             } else {
                 console.error(`[Session: ${execResult.sessionId || currentSessionId}] Tool execution failed:`, execResult.error);
                 const message = `抱歉，执行操作时失败：${execResult.error?.message || '未知错误'}`;
@@ -273,20 +280,28 @@ const MainPage = () => {
         // 处理用户确认
         setStatus('executing');
         
-        // 从pendingAction获取工具信息
-        let toolId, params, userId = 1;
-        
-        if (pendingAction?.tool_calls && pendingAction.tool_calls.length > 0) {
-            // 新格式: 工具调用数组
-            const firstToolCall = pendingAction.tool_calls[0];
-            toolId = firstToolCall.tool_id;
-            params = firstToolCall.parameters || {};
-        } else {
-            console.warn(`[Session: ${sessionIdRef.current}] 没有明确的 tool_calls，尝试执行... (可能需要后端支持无工具的确认流程)`);
-            // 这里可以尝试设置一个默认动作或提示错误
-            // 暂时允许继续，看后端execute如何处理
-            toolId = pendingAction?.action || 'default_confirm_action'; // 假设有一个默认动作
-            params = pendingAction?.params || {};
+        // 从pendingAction获取工具信息（更健壮的派生逻辑）
+        const deriveToolCall = (pa) => {
+            if (!pa) return { toolId: undefined, params: {} };
+            if (pa.tool_calls && pa.tool_calls.length > 0) {
+                const first = pa.tool_calls[0] || {};
+                const derivedId = first.tool_id || first.toolId || first?.tool?.id || first?.tool?.tool_id || first.name;
+                const derivedParams = first.parameters || first.params || first.arguments || first.args || first.payload || {};
+                return { toolId: derivedId, params: derivedParams };
+            }
+            const derivedId = pa.tool_id || pa.toolId || pa.action || pa.intent_id || pa.intent || pa.service_id || pa.serverId;
+            const derivedParams = pa.parameters || pa.params || pa.arguments || pa.args || pa.payload || {};
+            return { toolId: derivedId, params: derivedParams };
+        };
+
+        const { toolId, params } = deriveToolCall(pendingAction);
+        const userId = 1;
+
+        if (!toolId) {
+            console.error('未能从 interpret 结果中解析到可执行的工具ID。pendingAction=', pendingAction);
+            toast.error('未能识别要执行的操作，请重试或更具体描述。');
+            setStatus('error');
+            return;
         }
         
         const currentSessionId = sessionIdRef.current;

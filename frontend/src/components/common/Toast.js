@@ -200,7 +200,9 @@ export const ToastService = () => {
 
   // 添加消息
   const addMessage = useCallback((content, type = ToastTypes.INFO, duration = 3000) => {
-    const id = Date.now().toString();
+    const id = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     
     setMessages(prevMessages => [
       ...prevMessages,

@@ -170,69 +170,70 @@ const ResultDisplay = ({
     };
   }, [ttsMessage, autoSpeak, speak, isSpeaking, cancelTTS]);
   
-  // 格式化结果详情
+  // 格式化结果详情（优先展示 raw_data，其次 summary，再回退到结构化格式）
   const formatDetails = useCallback(() => {
     if (!data) return null;
-    
-    // 如果有格式化的消息，直接使用
-    if (data.tts_message || data.summary) {
-      return data.tts_message || data.summary;
-    }
-    
-    // 尝试智能格式化结构化数据
+
     try {
-      // 递归函数，用于构建格式化文本
       const formatObject = (obj, level = 0) => {
-        if (typeof obj !== 'object' || obj === null) {
-          return String(obj);
-        }
-        
-        // 数组格式化
+        if (typeof obj !== 'object' || obj === null) return String(obj);
+
         if (Array.isArray(obj)) {
           if (obj.length === 0) return '[]';
-          return obj.map(item => {
-            if (typeof item === 'object' && item !== null) {
-              return formatObject(item, level + 1);
-            }
-            return String(item);
-          }).join(', ');
+          return obj.map(item => (typeof item === 'object' && item !== null) ? formatObject(item, level + 1) : String(item)).join(', ');
         }
-        
-        // 对象格式化为可读文本
+
         const entries = Object.entries(obj);
         if (entries.length === 0) return '{}';
-        
-        // 仅包含特定关键字段的简化显示
+
         const keyFields = ['name', 'value', 'text', 'result', 'description', 'title', 'address', 'date', 'time', 'status'];
         const importantEntries = entries.filter(([key]) => keyFields.includes(key));
-        
         if (importantEntries.length > 0) {
           return importantEntries.map(([key, value]) => {
-            const formattedValue = typeof value === 'object' && value !== null
-              ? formatObject(value, level + 1)
-              : String(value);
+            const formattedValue = (typeof value === 'object' && value !== null) ? formatObject(value, level + 1) : String(value);
             return `${key}: ${formattedValue}`;
           }).join(', ');
         }
-        
-        // 如果没有关键字段，尝试找出最明显的描述性字段
+
         if (obj.content) return obj.content;
         if (obj.message) return obj.message;
-        
-        // 尽量避免完整的JSON字符串
-        const simpleRepresentation = entries.slice(0, 3).map(([key, value]) => {
-          const formattedValue = typeof value === 'object' && value !== null
-            ? (level < 2 ? formatObject(value, level + 1) : '[Object]')
-            : String(value);
+
+        const simple = entries.slice(0, 3).map(([key, value]) => {
+          const formattedValue = (typeof value === 'object' && value !== null) ? (level < 2 ? formatObject(value, level + 1) : '[Object]') : String(value);
           return `${key}: ${formattedValue}`;
         }).join(', ');
-        
-        return simpleRepresentation + (entries.length > 3 ? '...' : '');
+        return simple + (entries.length > 3 ? '...' : '');
       };
-      
-      return formatObject(data);
+
+      // 1) 优先 raw_data
+      const raw = data.raw_data ?? data.raw ?? null;
+      if (raw) {
+        // 优先抽取常见结构 raw.data.content[*].text
+        const contentArr = raw?.data?.content;
+        if (Array.isArray(contentArr) && contentArr.length > 0) {
+          const texts = contentArr
+            .map(item => {
+              if (typeof item === 'string') return item;
+              if (item && typeof item === 'object') {
+                return item.text || item.value || item.description || null;
+              }
+              return null;
+            })
+            .filter(Boolean);
+          if (texts.length > 0) {
+            return texts.join('\n');
+          }
+        }
+        return formatObject(raw);
+      }
+
+      // 2) 次选 summary（仅用于详情，不重复 tts_message）
+      if (data.summary) return data.summary;
+
+      // 3) 回退到格式化整个 data（避免重复读 tts_message，可做浅拷贝剔除）
+      const { tts_message, ...rest } = data || {};
+      return formatObject(rest);
     } catch (e) {
-      // 如果格式化失败，使用基本的JSON字符串化
       return JSON.stringify(data, null, 2);
     }
   }, [data]);

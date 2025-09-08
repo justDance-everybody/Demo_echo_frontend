@@ -192,11 +192,17 @@ const ConfirmationModal = ({
   const [isConfirmListening, setIsConfirmListening] = useState(false);
   const [showButtons, setShowButtons] = useState(false);
   const [ttsFinished, setTtsFinished] = useState(false);
+  const hasSpokenRef = useRef(false);
   
   // 对话框打开时朗读确认文本
   useEffect(() => {
     if (isOpen && confirmText) {
       console.log("ConfirmationModal: 准备播放确认文本。isTTSSpeaking:", isTTSSpeaking);
+      // 避免重复触发播放
+      if (hasSpokenRef.current) {
+        return;
+      }
+      hasSpokenRef.current = true;
       setTtsFinished(false);
       setShowButtons(false); // 初始不显示按钮
       
@@ -232,6 +238,7 @@ const ConfirmationModal = ({
       setIsConfirmListening(false);
       setShowButtons(false);
       setTtsFinished(false);
+      hasSpokenRef.current = false; // 重置，允许下次打开时再次播放
       // 停止正在进行的语音识别
       if (isSTTListening) {
         stopListening();
@@ -287,8 +294,8 @@ const ConfirmationModal = ({
     }
   }, [isConfirmListening, transcript, classifyIntent, stopListening, onConfirm, onRetry, onCancel]);
   
-  // 手动启动语音识别
-  const handleStartVoiceListening = () => {
+  // 手动启动语音识别（使用函数声明以避免TDZ问题）
+  function handleStartVoiceListening() {
     console.log("ConfirmationModal: 用户手动点击启动语音识别");
     setIsConfirmListening(true);
     // 确保先停止之前可能在进行的识别
@@ -311,7 +318,7 @@ const ConfirmationModal = ({
         setIsConfirmListening(false);
       }
     }, 10000);
-  };
+  }
   
   // 手动按钮处理函数
   const handleConfirm = () => {
@@ -411,7 +418,7 @@ const ConfirmationModal = ({
           </ModalText>
         )}
         
-        {showButtons && !isConfirmListening && (
+        {(showButtons || ttsFinished || !isTTSSpeaking) && (
           <ButtonGroup>
             <ConfirmButton theme={theme} onClick={handleConfirm} data-testid="confirm-button">
               <CheckOutlined /> 确认

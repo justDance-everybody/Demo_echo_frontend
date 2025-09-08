@@ -134,6 +134,25 @@ let developerToolsDb = [
 ];
 
 export const handlers = [
+  // Health check (MCP)
+  rest.get('/api/v1/mcp/health', (req, res, ctx) => {
+    return res(
+      ctx.status(200),
+      ctx.json({
+        success: true,
+        data: {
+          servers: {
+            'playwright': { status: 'running', restart_count: 0, consecutive_failures: 0, is_blacklisted: false },
+            'minimax-mcp-js': { status: 'running', restart_count: 0, consecutive_failures: 0, is_blacklisted: false },
+            'amap-maps': { status: 'running', restart_count: 0, consecutive_failures: 0, is_blacklisted: false },
+            'web3-rpc': { status: 'running', restart_count: 0, consecutive_failures: 0, is_blacklisted: false }
+          },
+          summary: { total: 4, running: 4, failed: 0, blacklisted: 0 }
+        }
+      })
+    );
+  }),
+
   // Authentication
   rest.post('/auth/register', async (req, res, ctx) => {
     const { username, email, password } = await req.json();
