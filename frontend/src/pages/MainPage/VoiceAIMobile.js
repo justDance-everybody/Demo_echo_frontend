@@ -208,6 +208,8 @@ const VoiceAIMobile = () => {
       // 如果返回IGNORE,跳过本次输入处理
       if (intent === 'IGNORE') {
         console.log("忽略当前输入,继续等待确认");
+        // 重置transcript以允许下次输入
+        voice.resetTranscript();
         return;
       }
       
@@ -219,6 +221,7 @@ const VoiceAIMobile = () => {
         // 设置执行标志,防止重复执行
         if (executing) {
           console.log("已经在执行中,忽略重复确认");
+          voice.resetTranscript();
           return;
         }
         
@@ -271,6 +274,9 @@ const VoiceAIMobile = () => {
         setWaitingForConfirmation(false);
         setConfirmText('');
       }
+      
+      // 处理完确认后重置transcript，为下次确认做准备
+      voice.resetTranscript();
     }
   }, [voice.transcript, waitingForConfirmation, classifyIntent, currentToolId, currentParams, text, originalQuery, executing, voice, processIntent, executeAction]);
   
@@ -280,20 +286,43 @@ const VoiceAIMobile = () => {
     
     // 当TTS停止播放且在等待确认状态时,自动开始语音识别
     if (!isSpeaking && waitingForConfirmation && confirmText) {
-      console.log("TTS播放结束,准备监听确认回复...");
+      console.log("TTS播放结束,准备监听确认回复...", {
+        waitingForConfirmation,
+        confirmText: confirmText.substring(0, 50) + "...",
+        isListening: voice.isListening,
+        processing,
+        executing
+      });
       
       // 使用更长的延迟,确保TTS完全停止且用户有足够时间反应
       // 避免TTS/STT冲突和循环
-      const delay = 2000; // 增加到2秒,给用户足够反应时间
+      const delay = 1500; // 减少到1.5秒，提高响应速度
       const timer = setTimeout(() => {
         // 再次检查是否仍然处于等待确认状态
         // 增加检查执行状态,如果已经在执行或处理中则不启动语音识别
         if (waitingForConfirmation && !voice.isListening && !processing && !executing) {
           console.log("开始监听确认回复...");
+          // 重置transcript确保能检测到新的输入
+          voice.resetTranscript();
           voice.startListening();
           setListening(true);
+          
+          // 添加验证，确保语音识别真正启动
+          setTimeout(() => {
+            if (voice.isListening) {
+              console.log("语音识别已成功启动");
+            } else {
+              console.warn("语音识别启动失败，尝试重新启动");
+              voice.startListening();
+            }
+          }, 500);
         } else {
-          console.log("状态已变化,取消启动语音识别");
+          console.log("状态已变化,取消启动语音识别", {
+            waitingForConfirmation,
+            isListening: voice.isListening,
+            processing,
+            executing
+          });
         }
       }, delay);
       

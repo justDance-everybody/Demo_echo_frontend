@@ -42,6 +42,8 @@ api.interceptors.response.use(
         localStorage.removeItem('token');
         errorMsg = '身份验证失败，请重新登录';
         // Consider redirecting: window.location.href = '/login'; 
+      } else if (status === 405) {
+        errorMsg = '请求方法不被允许，请检查API配置';
       } else if (data?.detail) { // FastAPI validation errors often in 'detail'
         if (Array.isArray(data.detail)) { // Handle list of validation errors
             errorMsg = data.detail.map(err => `${err.loc ? err.loc.join('.')+': ' : ''}${err.msg}`).join('; ');
@@ -310,15 +312,37 @@ const getToolById = async (toolId) => {
 
 // 开发者API接口
 
-// 获取开发者服务列表
-const getDeveloperServices = async () => {
+// 获取开发者工具列表
+const getDeveloperServices = async (params = {}) => {
   try {
-    console.log("获取开发者服务列表...");
-    const response = await api.get('/api/v1/dev/tools');
-    console.log("开发者服务列表响应:", response.data);
-    return response.data.services;
+    console.log("获取开发者工具列表...", params);
+    
+    // 构建查询参数
+    const queryParams = new URLSearchParams();
+    
+    // 分页参数
+    if (params.page) queryParams.append('page', params.page);
+    if (params.page_size) queryParams.append('page_size', params.page_size);
+    
+    // 筛选参数
+    if (params.status) queryParams.append('status', params.status);
+    if (params.is_public !== undefined) queryParams.append('is_public', params.is_public);
+    if (params.search) queryParams.append('search', params.search);
+    
+    const url = `/api/v1/dev/tools${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const response = await api.get(url);
+    
+    console.log("开发者工具列表响应:", response.data);
+    
+    // 返回完整的响应数据，包含分页信息
+    return {
+      tools: response.data.tools || [],
+      total: response.data.total || 0,
+      page: response.data.page || 1,
+      page_size: response.data.page_size || 10
+    };
   } catch (error) {
-    console.error('获取开发者服务列表失败:', error);
+    console.error('获取开发者工具列表失败:', error);
     throw error;
   }
 };
@@ -328,8 +352,9 @@ const createDeveloperService = async (serviceData) => {
   try {
     console.log("创建新服务...", serviceData);
     const response = await api.post('/api/v1/dev/tools', serviceData);
-    console.log("创建服务响应:", response.data);
-    return response.data;
+    console.log("创建服务响应:", response.status, response.data);
+    // 返回完整响应，便于上层用 status 做判断
+    return response;
   } catch (error) {
     console.error('创建服务失败:', error);
     throw error;
@@ -349,28 +374,30 @@ const getDeveloperServiceById = async (serviceId) => {
   }
 };
 
-// 更新服务
-const updateDeveloperService = async (serviceId, updateData) => {
+// 更新开发者工具
+const updateDeveloperService = async (toolId, updateData) => {
   try {
-    console.log(`更新开发者服务ID: ${serviceId}`, updateData);
-    const response = await api.put(`/api/v1/dev/tools/${serviceId}`, updateData);
-    console.log("更新服务响应:", response.data);
-    return response.data;
+    console.log(`更新开发者工具ID: ${toolId}`, updateData);
+    const response = await api.put(`/api/v1/dev/tools/${toolId}`, updateData);
+    console.log("更新工具响应:", response.status, response.data);
+    // 返回完整响应，便于上层用 status 做判断
+    return response;
   } catch (error) {
-    console.error(`更新开发者服务ID: ${serviceId} 失败:`, error);
+    console.error(`更新开发者工具ID: ${toolId} 失败:`, error);
     throw error;
   }
 };
 
-// 删除服务
-const deleteDeveloperService = async (serviceId) => {
+// 删除开发者工具
+const deleteDeveloperService = async (toolId) => {
   try {
-    console.log(`删除开发者服务ID: ${serviceId}`);
-    const response = await api.delete(`/api/v1/dev/tools/${serviceId}`);
-    console.log("删除服务响应:", response.data);
-    return response.data;
+    console.log(`删除开发者工具ID: ${toolId}`);
+    const response = await api.delete(`/api/v1/dev/tools/${toolId}`);
+    console.log("删除工具响应:", response.status, response.data);
+    // 返回完整响应，便于上层用 status 做判断
+    return response;
   } catch (error) {
-    console.error(`删除开发者服务ID: ${serviceId} 失败:`, error);
+    console.error(`删除开发者工具ID: ${toolId} 失败:`, error);
     throw error;
   }
 };

@@ -129,7 +129,7 @@ const initialFormState = {
 const AddServiceForm = ({ onServiceAdded }) => {
   const [formData, setFormData] = useState(initialFormState);
   const [testResult, setTestResult] = useState('等待测试...');
-  const [isTestSuccessful, setIsTestSuccessful] = useState(false);
+  // const [isTestSuccessful, setIsTestSuccessful] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [saveError, setSaveError] = useState(null);
 
@@ -150,14 +150,14 @@ const AddServiceForm = ({ onServiceAdded }) => {
   const handleClearForm = () => {
     setFormData(initialFormState);
     setTestResult('等待测试...');
-    setIsTestSuccessful(false);
+    // setIsTestSuccessful(false);
     setIsTesting(false);
   };
 
   const handleTestService = async () => {
     setIsTesting(true);
     setTestResult('正在测试中...');
-    setIsTestSuccessful(false);
+    // setIsTestSuccessful(false);
     setSaveError(null);
 
     const { 
@@ -218,11 +218,11 @@ const AddServiceForm = ({ onServiceAdded }) => {
       
       if (response.data && response.data.success) {
         setTestResult(JSON.stringify(response.data.data || response.data, null, 2));
-        setIsTestSuccessful(true);
+        // setIsTestSuccessful(true);
         toast.success(response.data.message || 'API Test successful!');
       } else {
         setTestResult(JSON.stringify(response.data || { error: "Test failed with non-success response" }, null, 2));
-        setIsTestSuccessful(false);
+        // setIsTestSuccessful(false);
         toast.error(response.data.message || 'API Test failed. Check configuration.');
       }
 
@@ -230,17 +230,13 @@ const AddServiceForm = ({ onServiceAdded }) => {
       console.error("API Test Error:", error);
       const errorMessage = error.message || 'API Test failed due to an unexpected error.';
       setTestResult(JSON.stringify({ error: errorMessage, details: error.originalError?.response?.data || error }, null, 2));
-      setIsTestSuccessful(false);
+      // setIsTestSuccessful(false);
       toast.error(errorMessage);
     }
     setIsTesting(false);
   };
 
   const handleSaveService = async () => {
-    if (!isTestSuccessful) {
-      toast.warn('请先成功测试该服务后再保存。');
-      return;
-    }
     setSaveError(null); // Clear previous save errors before attempting to save
 
     const { 
@@ -251,57 +247,51 @@ const AddServiceForm = ({ onServiceAdded }) => {
       apiKey, 
       difyAppId, 
       cozeBotId, 
-      userInputVar,
-      documentation // This comes from formData
+      userInputVar
     } = formData;
 
+    // 生成唯一的tool_id
+    const toolId = `tool_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
     let serviceDataPayload = {
+      tool_id: toolId,
       name: serviceName,
+      type: platformType === 'dify' || platformType === 'coze' ? 'http' : platformType,
       description: serviceDescription,
-      platform_type: platformType,
-      endpoint_config: {
-        url: endpointUrl, // May be empty if not applicable (e.g. Dify/Coze if backend handles URL by ID)
+      endpoint: {
+        url: endpointUrl || '',
+        platform_type: platformType,
+        ...(platformType === 'dify' && difyAppId && { app_id: difyAppId }),
+        ...(platformType === 'coze' && cozeBotId && { bot_id: cozeBotId }),
+        ...(userInputVar && { user_input_variable: userInputVar })
       },
-      authentication: null, // Default to null, will be set based on apiKey and platformType
-      documentation: documentation || '',
+      request_schema: {
+        type: "object",
+        properties: {
+          [userInputVar || 'query']: {
+            type: "string",
+            description: "用户输入内容"
+          }
+        },
+        required: [userInputVar || 'query']
+      },
+      response_schema: {
+        type: "object",
+        properties: {
+          success: { type: "boolean" },
+          data: { type: "object" },
+          message: { type: "string" }
+        }
+      },
+      server_name: platformType === 'dify' ? 'dify' : platformType === 'coze' ? 'coze' : 'custom',
+      is_public: false,
+      version: "1.0.0",
+      tags: [platformType, "developer-tool"]
     };
 
-    // Platform-specific configurations and authentication overrides
-    if (platformType === 'dify') {
-      serviceDataPayload.dify_config = {
-        app_id: difyAppId,
-        user_input_variable: userInputVar || 'query',
-      };
-      if (apiKey) serviceDataPayload.authentication = { type: "bearer", token: apiKey };
-    } else if (platformType === 'coze') {
-      serviceDataPayload.coze_config = {
-        bot_id: cozeBotId,
-        user_input_variable: userInputVar || 'query',
-      };
-      if (apiKey) serviceDataPayload.authentication = { type: "bearer", token: apiKey };
-    } else if (platformType === 'http') {
-      serviceDataPayload.http_config = {
-        user_input_variable: userInputVar || 'query',
-      };
-      // For generic HTTP, if an API key is provided, assume Bearer token for now.
-      // This could be made more configurable (e.g. allowing user to specify header name/type).
-      if (apiKey) serviceDataPayload.authentication = { type: "bearer", token: apiKey };
-    }
-
-    // If endpointUrl is not relevant for Dify/Coze because backend handles it via ID,
-    // ensure it's not sent or handled appropriately by backend if it is.
-    // If it IS the base URL, this is fine.
-    // For now, `endpointUrl` is included in `endpoint_config` if provided.
-    if (!endpointUrl && (platformType === 'dify' || platformType === 'coze')) {
-        // If endpointUrl is truly optional and not provided for Dify/Coze, 
-        // we might want to remove `url` from `endpoint_config` or send it as empty.
-        // The current structure sends it as `formData.endpointUrl` which could be an empty string.
-        // Let's ensure endpoint_config.url is only set if endpointUrl has a value.
-        if (formData.endpointUrl) {
-             serviceDataPayload.endpoint_config.url = formData.endpointUrl;
-        } else {
-            delete serviceDataPayload.endpoint_config.url; // Or set to null, depending on backend
-        }
+    // 添加API密钥到endpoint配置中
+    if (apiKey) {
+      serviceDataPayload.endpoint.auth_token = apiKey;
     }
 
     try {
@@ -403,7 +393,7 @@ const AddServiceForm = ({ onServiceAdded }) => {
       </FormGroup>
 
       <ButtonGroup>
-        <PrimaryButton onClick={handleSaveService} disabled={!isTestSuccessful || isTesting}>保存服务</PrimaryButton>
+        <PrimaryButton onClick={handleSaveService} disabled={isTesting}>保存服务</PrimaryButton>
         <SecondaryButton onClick={handleClearForm} disabled={isTesting}>清空表单</SecondaryButton>
       </ButtonGroup>
 

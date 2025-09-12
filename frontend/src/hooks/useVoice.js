@@ -250,13 +250,19 @@ const useVoice = () => {
     stopListening();
   }, [stopListening]);
 
+  // 重置transcript但不停止监听
+  const resetTranscript = useCallback(() => {
+    setTranscript('');
+  }, []);
+
   return {
     isListening,
     transcript,
     error,
     startListening,
     stopListening,
-    reset
+    reset,
+    resetTranscript
   };
 };
 
