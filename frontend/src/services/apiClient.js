@@ -402,6 +402,24 @@ const deleteDeveloperService = async (toolId) => {
   }
 };
 
+// 测试开发者工具
+const testDeveloperTool = async (toolId, testData, timeout = 30) => {
+  try {
+    console.log(`测试开发者工具ID: ${toolId}`, testData);
+    const payload = {
+      tool_id: toolId,
+      test_data: testData,
+      timeout: timeout
+    };
+    const response = await api.post(`/api/v1/dev/tools/${toolId}/test`, payload);
+    console.log("测试工具响应:", response.status, response.data);
+    return response;
+  } catch (error) {
+    console.error(`测试开发者工具ID: ${toolId} 失败:`, error);
+    throw error;
+  }
+};
+
 // 获取开发者工具列表（带分页与筛选）
 const getDeveloperTools = async ({ page = 1, pageSize = 10, status, isPublic, search } = {}) => {
   try {
@@ -517,6 +535,7 @@ const apiClientInstance = {
   getDeveloperServiceById,
   updateDeveloperService,
   deleteDeveloperService,
+  testDeveloperTool,
   uploadApiPackage,
   getDeveloperApplications,
   createDeveloperApplication,

@@ -4,6 +4,7 @@ import apiClient from '../../services/apiClient'; // Assuming a central apiClien
 import styled from 'styled-components';
 import AddServiceForm from './AddServiceForm'; // Import the new form component
 import EditServiceForm from './EditServiceForm'; // Import the edit form component
+import TestToolModal from './TestToolModal'; // Import the test modal component
 import { toast } from '../../components/common/Toast';
 
 // Basic styling for the page and list (can be moved to a separate CSS file or enhanced)
@@ -64,6 +65,11 @@ const EditButton = styled.button`
   &:hover { background-color: #3dbbab; }
 `;
 
+const TestButton = styled.button`
+  background-color: var(--color-info, #4299E1);
+  color: white;
+  &:hover { background-color: #3182ce; }
+`;
 
 const DeleteButton = styled.button`
   background-color: var(--color-error, #F56565);
@@ -158,6 +164,7 @@ const DeveloperConsolePage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editingToolId, setEditingToolId] = useState(null);
+  const [testingTool, setTestingTool] = useState(null);
   const [pagination, setPagination] = useState({
     page: 1,
     page_size: 10,
@@ -223,6 +230,14 @@ const DeveloperConsolePage = () => {
 
   const handleCancelEdit = () => {
     setEditingToolId(null);
+  };
+
+  const handleTestTool = (tool) => {
+    setTestingTool(tool);
+  };
+
+  const handleCloseTestModal = () => {
+    setTestingTool(null);
   };
 
   const handleFilterChange = (filterType, value) => {
@@ -365,6 +380,7 @@ const DeveloperConsolePage = () => {
               </div>
               <ActionsContainer>
                 <EditButton onClick={() => handleEditTool(tool.tool_id)}>编辑</EditButton>
+                <TestButton onClick={() => handleTestTool(tool)}>测试</TestButton>
                 <DeleteButton onClick={() => handleDeleteTool(tool.tool_id)}>删除</DeleteButton>
               </ActionsContainer>
             </ToolListItem>
@@ -395,6 +411,13 @@ const DeveloperConsolePage = () => {
           </div>
         </PaginationSection>
       )}
+      
+      {/* 测试工具模态框 */}
+      <TestToolModal 
+        tool={testingTool}
+        isOpen={!!testingTool}
+        onClose={handleCloseTestModal}
+      />
     </PageWrapper>
   );
 };

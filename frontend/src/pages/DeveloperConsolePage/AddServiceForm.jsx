@@ -157,7 +157,6 @@ const AddServiceForm = ({ onServiceAdded }) => {
   const handleTestService = async () => {
     setIsTesting(true);
     setTestResult('正在测试中...');
-    // setIsTestSuccessful(false);
     setSaveError(null);
 
     const { 
@@ -172,44 +171,57 @@ const AddServiceForm = ({ onServiceAdded }) => {
       testInput 
     } = formData;
 
-    let toolConfiguration = {
+    // 构建新的API payload结构
+    const toolConfig = {
       name: serviceName,
       description: serviceDescription,
-      platform_type: platformType,
-      endpoint_config: {
+      type: platformType === 'dify' || platformType === 'coze' ? 'http' : platformType,
+      endpoint: {
         url: endpointUrl,
+        platform_type: platformType,
+        user_input_variable: userInputVar || 'query',
+        auth_token: apiKey || '',
       },
-      authentication: apiKey ? { type: "bearer", token: apiKey } : null,
+      request_schema: {
+        type: "object",
+        properties: {
+          [userInputVar || 'query']: {
+            type: "string",
+            description: "用户输入内容"
+          }
+        },
+        required: [userInputVar || 'query']
+      },
+      response_schema: {
+        type: "object",
+        properties: {
+          success: { type: "boolean" },
+          data: { type: "object" },
+          message: { type: "string" }
+        }
+      },
+      server_name: serviceName,
+      is_public: false,
+      version: '1.0.0',
+      tags: [platformType, 'developer-tool']
     };
 
-    if (platformType === 'dify') {
-      toolConfiguration.dify_config = {
-        app_id: difyAppId,
-        user_input_variable: userInputVar || 'query',
-      };
-      if (apiKey) toolConfiguration.authentication = { type: "bearer", token: apiKey }; 
-    } else if (platformType === 'coze') {
-      toolConfiguration.coze_config = {
-        bot_id: cozeBotId,
-        user_input_variable: userInputVar || 'query',
-      };
-      if (apiKey) toolConfiguration.authentication = { type: "bearer", token: apiKey }; 
-    } else if (platformType === 'http') {
-      toolConfiguration.http_config = {
-        user_input_variable: userInputVar || 'query',
-      };
-      if (apiKey) {
-        toolConfiguration.authentication = { type: "bearer", token: apiKey }; 
-      }
+    // 添加平台特定的配置
+    if (platformType === 'dify' && difyAppId) {
+      toolConfig.endpoint.app_id = difyAppId;
     }
-    
-    if (platformType === 'dify' || platformType === 'coze') {
-        if(endpointUrl) toolConfiguration.endpoint_config.url = endpointUrl;
+    if (platformType === 'coze' && cozeBotId) {
+      toolConfig.endpoint.bot_id = cozeBotId;
     }
 
+    // 构建测试数据
+    const testData = {};
+    testData[userInputVar || 'query'] = testInput || '测试输入内容';
+
     const payload = {
-      tool_config: toolConfiguration,
-      test_input: testInput || ""
+      tool_config: toolConfig,
+      test_data: testData,
+      timeout: 30
     };
 
     try {
@@ -217,13 +229,11 @@ const AddServiceForm = ({ onServiceAdded }) => {
       const response = await apiClient.testUnsavedDeveloperTool(payload);
       
       if (response.data && response.data.success) {
-        setTestResult(JSON.stringify(response.data.data || response.data, null, 2));
-        // setIsTestSuccessful(true);
-        toast.success(response.data.message || 'API Test successful!');
+        setTestResult(JSON.stringify(response.data.result || response.data, null, 2));
+        toast.success('API测试成功！');
       } else {
-        setTestResult(JSON.stringify(response.data || { error: "Test failed with non-success response" }, null, 2));
-        // setIsTestSuccessful(false);
-        toast.error(response.data.message || 'API Test failed. Check configuration.');
+        setTestResult(JSON.stringify(response.data || { error: "测试失败" }, null, 2));
+        toast.error(response.data?.error || 'API测试失败，请检查配置。');
       }
 
     } catch (error) {
