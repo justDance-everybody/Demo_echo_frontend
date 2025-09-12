@@ -210,6 +210,10 @@ const ConfirmationModal = ({
       if (useVoiceConfirmation) {
         try {
           setIsConfirmListening(true);
+          // 重置transcript确保能检测到新的输入
+          if (voiceHook.resetTranscript) {
+            voiceHook.resetTranscript();
+          }
           stopListening();
         } catch (e) {
           console.log("停止之前的识别时出错:", e);
@@ -296,13 +300,24 @@ const ConfirmationModal = ({
           setShowButtons(true);
           break;
       }
+      
+      // 处理完确认后重置transcript，为下次确认做准备
+      if (voiceHook.resetTranscript) {
+        voiceHook.resetTranscript();
+      }
     }
-  }, [isConfirmListening, transcript, classifyIntent, stopListening, onConfirm, onRetry, onCancel]);
+  }, [isConfirmListening, transcript, classifyIntent, stopListening, onConfirm, onRetry, onCancel, voiceHook]);
   
   // 手动启动语音识别（使用函数声明以避免TDZ问题）
   function handleStartVoiceListening() {
     console.log("ConfirmationModal: 用户手动点击启动语音识别");
     setIsConfirmListening(true);
+    
+    // 重置transcript确保能检测到新的输入
+    if (voiceHook.resetTranscript) {
+      voiceHook.resetTranscript();
+    }
+    
     // 确保先停止之前可能在进行的识别
     try {
       stopListening();

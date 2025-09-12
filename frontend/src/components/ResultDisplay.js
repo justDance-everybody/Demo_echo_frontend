@@ -184,7 +184,7 @@ const ResultDisplay = ({
         }
 
         const entries = Object.entries(obj);
-        if (entries.length === 0) return '{}';
+        if (entries.length === 0) return null; // 返回 null 而不是 '{}'
 
         const keyFields = ['name', 'value', 'text', 'result', 'description', 'title', 'address', 'date', 'time', 'status'];
         const importantEntries = entries.filter(([key]) => keyFields.includes(key));
@@ -224,7 +224,8 @@ const ResultDisplay = ({
             return texts.join('\n');
           }
         }
-        return formatObject(raw);
+        const rawFormatted = formatObject(raw);
+        if (rawFormatted) return rawFormatted;
       }
 
       // 2) 次选 summary（仅用于详情，不重复 tts_message）
@@ -232,7 +233,11 @@ const ResultDisplay = ({
 
       // 3) 回退到格式化整个 data（避免重复读 tts_message，可做浅拷贝剔除）
       const { tts_message, ...rest } = data || {};
-      return formatObject(rest);
+      const restFormatted = formatObject(rest);
+      if (restFormatted) return restFormatted;
+
+      // 4) 如果所有格式化都返回 null 或空，则不显示详情区域
+      return null;
     } catch (e) {
       return JSON.stringify(data, null, 2);
     }

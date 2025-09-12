@@ -33,6 +33,8 @@ class ErrorService {
         errorMessage = '无权限执行此操作';
       } else if (status === 404) {
         errorMessage = '请求的资源不存在';
+      } else if (status === 405) {
+        errorMessage = '请求方法不被允许，请检查API配置';
       } else if (status === 500) {
         errorMessage = '服务器错误，请稍后再试';
       } else if (data && data.message) {
