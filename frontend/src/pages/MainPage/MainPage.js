@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import VoiceRecorder from '../../components/VoiceRecorder/VoiceRecorder';
 import StatusBar from '../../components/StatusBar/StatusBar';
+import FourStageProgressBar, { FOUR_STAGES } from '../../components/FourStageProgressBar';
 import apiClient from '../../services/apiClient'; 
 import useTTS from '../../hooks/useTTS'; 
 import useVoice from '../../hooks/useVoice';
@@ -80,6 +81,34 @@ const MainPage = () => {
         fetchTools();
     }, []);
     
+    // 将现有状态映射到四个阶段
+    const getCurrentProgressStage = useCallback(() => {
+        switch (status) {
+            case 'idle':
+                return null; // 空闲状态不显示进度条
+            case 'listening':
+                return FOUR_STAGES.UNDERSTANDING; // 开始录音时显示理解阶段
+            case 'thinking':
+            case 'interpreting':
+                return FOUR_STAGES.UNDERSTANDING;
+            case 'listening_confirm':
+            case 'confirming':
+                return FOUR_STAGES.CONFIRMING;
+            case 'executing':
+                return FOUR_STAGES.EXECUTING;
+            case 'speaking':
+                // 如果有结果数据，说明执行完成
+                if (resultData) {
+                    return FOUR_STAGES.COMPLETED;
+                }
+                return FOUR_STAGES.EXECUTING;
+            case 'error':
+                return null; // 错误状态不显示进度条
+            default:
+                return null;
+        }
+    }, [status, resultData]);
+
     // 添加重置函数
     const resetUIState = useCallback(() => {
         console.log('重置界面状态...');
@@ -458,6 +487,78 @@ const MainPage = () => {
             transition={{ duration: 0.5 }}
         >
             <StatusBar currentStatus={status} lastTranscript={lastTranscript} lastResponse={lastResponse} />
+            
+            {/* 四阶段进度条 */}
+            <AnimatePresence>
+                {getCurrentProgressStage() && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.3 }}
+                        className="progress-container"
+                    >
+                        <FourStageProgressBar 
+                            currentStage={getCurrentProgressStage()}
+                            showDescription={true}
+                        />
+                    </motion.div>
+                )}
+            </AnimatePresence>
+            
+            {/* 调试信息 - 可以在开发时显示 */}
+            {process.env.NODE_ENV === 'development' && (
+                <div style={{ 
+                    position: 'fixed', 
+                    top: '60px', 
+                    right: '10px', 
+                    background: 'rgba(0,0,0,0.8)', 
+                    color: 'white', 
+                    padding: '10px', 
+                    borderRadius: '5px',
+                    fontSize: '12px',
+                    zIndex: 1000
+                }}>
+                    <div>状态: {status}</div>
+                    <div>进度阶段: {getCurrentProgressStage() || '无'}</div>
+                    <div>有结果数据: {resultData ? '是' : '否'}</div>
+                    <div style={{ marginTop: '10px' }}>
+                        <button 
+                            onClick={() => setStatus('listening')}
+                            style={{ margin: '2px', padding: '4px 8px', fontSize: '10px' }}
+                        >
+                            测试录音
+                        </button>
+                        <button 
+                            onClick={() => setStatus('thinking')}
+                            style={{ margin: '2px', padding: '4px 8px', fontSize: '10px' }}
+                        >
+                            测试理解
+                        </button>
+                        <button 
+                            onClick={() => setStatus('confirming')}
+                            style={{ margin: '2px', padding: '4px 8px', fontSize: '10px' }}
+                        >
+                            测试确认
+                        </button>
+                        <button 
+                            onClick={() => setStatus('executing')}
+                            style={{ margin: '2px', padding: '4px 8px', fontSize: '10px' }}
+                        >
+                            测试执行
+                        </button>
+                        <button 
+                            onClick={() => {
+                                setStatus('speaking');
+                                setResultData({ status: 'success', data: { message: '测试完成' } });
+                            }}
+                            style={{ margin: '2px', padding: '4px 8px', fontSize: '10px' }}
+                        >
+                            测试完成
+                        </button>
+                    </div>
+                </div>
+            )}
             
             {/* 侧边栏切换按钮 */}
             <button 

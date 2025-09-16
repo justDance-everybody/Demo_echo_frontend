@@ -278,6 +278,14 @@
   }
 }
 
+/* 进度条容器样式 */
+.progress-container {
+  width: 100%;
+  max-width: 600px;
+  margin: 20px auto;
+  padding: 0 20px;
+}
+
 /* 状态指示器样式 - 会在StatusBar组件中覆盖 */
 .status-bar-container {
   position: fixed;
