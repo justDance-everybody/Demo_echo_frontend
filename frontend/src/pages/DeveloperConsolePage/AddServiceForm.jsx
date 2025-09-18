@@ -129,7 +129,7 @@ const initialFormState = {
 const AddServiceForm = ({ onServiceAdded }) => {
   const [formData, setFormData] = useState(initialFormState);
   const [testResult, setTestResult] = useState('等待测试...');
-  // const [isTestSuccessful, setIsTestSuccessful] = useState(false);
+  const [isTestSuccessful, setIsTestSuccessful] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [saveError, setSaveError] = useState(null);
 
@@ -150,8 +150,9 @@ const AddServiceForm = ({ onServiceAdded }) => {
   const handleClearForm = () => {
     setFormData(initialFormState);
     setTestResult('等待测试...');
-    // setIsTestSuccessful(false);
+    setIsTestSuccessful(false);
     setIsTesting(false);
+    setSaveError(null);
   };
 
   const handleTestService = async () => {
@@ -228,11 +229,13 @@ const AddServiceForm = ({ onServiceAdded }) => {
       console.log("Testing with payload:", JSON.stringify(payload, null, 2));
       const response = await apiClient.testUnsavedDeveloperTool(payload);
       
-      if (response.data && response.data.success) {
+      if (response && response.status === 200 && response.data && response.data.success) {
         setTestResult(JSON.stringify(response.data.result || response.data, null, 2));
-        toast.success('API测试成功！');
+        setIsTestSuccessful(true);
+        toast.success('API测试成功！现在可以保存服务。');
       } else {
         setTestResult(JSON.stringify(response.data || { error: "测试失败" }, null, 2));
+        setIsTestSuccessful(false);
         toast.error(response.data?.error || 'API测试失败，请检查配置。');
       }
 
@@ -240,13 +243,20 @@ const AddServiceForm = ({ onServiceAdded }) => {
       console.error("API Test Error:", error);
       const errorMessage = error.message || 'API Test failed due to an unexpected error.';
       setTestResult(JSON.stringify({ error: errorMessage, details: error.originalError?.response?.data || error }, null, 2));
-      // setIsTestSuccessful(false);
+      setIsTestSuccessful(false);
       toast.error(errorMessage);
     }
     setIsTesting(false);
   };
 
   const handleSaveService = async () => {
+    // 检查是否测试成功
+    if (!isTestSuccessful) {
+      setSaveError('请先进行接口测试，只有测试成功后才能保存服务。');
+      toast.error('请先进行接口测试，只有测试成功后才能保存服务。');
+      return;
+    }
+    
     setSaveError(null); // Clear previous save errors before attempting to save
 
     const { 
@@ -402,13 +412,11 @@ const AddServiceForm = ({ onServiceAdded }) => {
         <textarea id="documentation" name="documentation" value={formData.documentation} onChange={handleChange} placeholder="请详细描述服务用途、输入参数、示例输入和输出..." required />
       </FormGroup>
 
-      <ButtonGroup>
-        <PrimaryButton onClick={handleSaveService} disabled={isTesting}>保存服务</PrimaryButton>
-        <SecondaryButton onClick={handleClearForm} disabled={isTesting}>清空表单</SecondaryButton>
-      </ButtonGroup>
-
       <TestSection>
         <h4>接口测试区</h4>
+        <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: '1rem' }}>
+          <strong>重要：</strong>请先进行接口测试，只有测试成功后才能保存服务。
+        </p>
         <FormGroup>
             <label htmlFor="testInput">测试输入内容:</label>
             <input type="text" id="testInput" name="testInput" value={formData.testInput} onChange={handleChange} placeholder="输入测试文本..." disabled={isTesting} />
@@ -422,7 +430,34 @@ const AddServiceForm = ({ onServiceAdded }) => {
                 {testResult}
             </TestResultArea>
         </FormGroup>
+        {isTestSuccessful && (
+          <div style={{ 
+            marginTop: '1rem', 
+            padding: '0.8rem', 
+            backgroundColor: '#e8f5e8', 
+            border: '1px solid #4caf50', 
+            borderRadius: '4px',
+            color: '#2e7d32',
+            fontSize: '0.9rem'
+          }}>
+            ✅ 测试成功！现在可以保存服务了。
+          </div>
+        )}
       </TestSection>
+
+      <ButtonGroup>
+        <PrimaryButton 
+          onClick={handleSaveService} 
+          disabled={isTesting || !isTestSuccessful}
+          style={{ 
+            backgroundColor: isTestSuccessful ? '' : '#ccc',
+            cursor: isTestSuccessful ? '' : 'not-allowed'
+          }}
+        >
+          {isTestSuccessful ? '保存服务' : '请先测试接口'}
+        </PrimaryButton>
+        <SecondaryButton onClick={handleClearForm} disabled={isTesting}>清空表单</SecondaryButton>
+      </ButtonGroup>
 
     </FormWrapper>
   );
