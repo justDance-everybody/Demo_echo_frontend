@@ -49,7 +49,7 @@ describe('AddServiceForm', () => {
       expect(screen.getByLabelText(/Dify App ID/i)).toBeInTheDocument();
       expect(screen.queryByLabelText(/Coze Bot ID/i)).not.toBeInTheDocument();
 
-      expect(screen.getByRole('button', { name: /请先测试接口/i })).toBeDisabled();
+      expect(screen.getByRole('button', { name: /保存服务/i })).toBeEnabled();
       expect(screen.getByRole('button', { name: /清空表单/i })).toBeEnabled();
       expect(screen.getByRole('button', { name: /发送测试请求/i })).toBeEnabled();
     });
@@ -107,7 +107,7 @@ describe('AddServiceForm', () => {
       expect(screen.getByLabelText(/平台类型/i).value).toBe('dify'); // Default value
       expect(screen.getByLabelText(/测试输入内容/i).value).toBe('');
       expect(screen.getByText('等待测试...')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /请先测试接口/i })).toBeDisabled();
+      expect(screen.getByRole('button', { name: /保存服务/i })).toBeEnabled();
     });
   });
 
@@ -156,7 +156,7 @@ describe('AddServiceForm', () => {
       
       await waitFor(() => {
         expect(screen.getByText(/"answer": "Test response"/i)).toBeInTheDocument();
-        expect(toast.success).toHaveBeenCalledWith('API Test successful!');
+        expect(toast.success).toHaveBeenCalledWith('API测试成功！接口配置正确。');
         expect(screen.getByRole('button', { name: /保存服务/i })).toBeEnabled();
         expect(testButton).toBeEnabled();
         expect(testButton).toHaveTextContent('发送测试请求');
@@ -186,7 +186,7 @@ describe('AddServiceForm', () => {
         expect(screen.getByText(/"error": "Network Error"/i)).toBeInTheDocument();
         expect(screen.getByText(/"detail": "Something went wrong"/i)).toBeInTheDocument();
         expect(toast.error).toHaveBeenCalledWith('Network Error');
-        expect(screen.getByRole('button', { name: /请先测试接口/i })).toBeDisabled();
+        expect(screen.getByRole('button', { name: /保存服务/i })).toBeEnabled();
         expect(testButton).toBeEnabled();
       });
     });
@@ -214,7 +214,7 @@ describe('AddServiceForm', () => {
       await waitFor(() => {
         expect(screen.getByText(/"error_details": "Invalid Coze Bot ID"/i)).toBeInTheDocument();
         expect(toast.error).toHaveBeenCalledWith('Configuration incorrect.');
-        expect(screen.getByRole('button', { name: /请先测试接口/i })).toBeDisabled();
+        expect(screen.getByRole('button', { name: /保存服务/i })).toBeEnabled();
         expect(testButton).toBeEnabled();
       });
     });
@@ -236,46 +236,24 @@ describe('AddServiceForm', () => {
         data: { success: true, data: { message: "Test successful before save" } } 
       });
       await userEvent.click(screen.getByRole('button', { name: /发送测试请求/i }));
-      await waitFor(() => expect(screen.getByRole('button', { name: /请先测试接口/i })).toBeEnabled());
+      await waitFor(() => expect(screen.getByRole('button', { name: /保存服务/i })).toBeEnabled());
     };
 
-    it('should not call createDeveloperService and show warning if test was not successful', async () => {
+    it('should allow saving service without requiring test success first', async () => {
       renderForm();
       // Fill some data but don't simulate a successful test
       await userEvent.type(screen.getByLabelText(/服务名称/i), 'Untested Service');
+      await userEvent.type(screen.getByLabelText(/服务描述/i), 'This is an untested service.');
+      await userEvent.selectOptions(screen.getByLabelText(/平台类型/i), 'http');
+      await userEvent.type(screen.getByLabelText(/Endpoint URL/i), 'https://example.com/api');
+      await userEvent.type(screen.getByLabelText(/API 密钥\/Token/i), 'test-key');
+      await userEvent.type(screen.getByLabelText(/用户输入字段名/i), 'query');
+      await userEvent.type(screen.getByLabelText(/说明文档/i), 'Test documentation.');
       
-      const saveButton = screen.getByRole('button', { name: /请先测试接口/i });
-      expect(saveButton).toBeDisabled(); // Should be disabled initially
-      
-      // Even if we could enable it, the internal state isTestSuccessful is false
-      // Let's try clicking it (though it's disabled, this is more for internal logic check if it somehow gets enabled without test pass)
-      // For a more direct test of the logic: if isTestSuccessful is false, it should warn.
-      // We can directly test the component's state if needed, or trust the disabled state reflects this.
-      // The `handleSaveService` explicitly checks `isTestSuccessful`.
-
-      // Simulate enabling it by force (not a real user scenario, but to test the guard)
-      // This is tricky as the disabled state is tied to isTestSuccessful.
-      // Instead, let's check that if isTestSuccessful is false (default), clicking save (if it were enabled) does right thing.
-      // The current implementation: save button is disabled if !isTestSuccessful. So direct click is not possible.
-      // The first line of handleSaveService is `if (!isTestSuccessful) { toast.warn(...); return; }`
-      // So we rely on the button being disabled as the primary guard for user interaction.
-      // We can, however, call the handler directly if we get a ref to the component instance, but that's not standard RTL practice.
-      
-      // Test the warning that should appear if save is attempted without successful test:
-      // To do this, we need to bypass the disabled state of the button to actually invoke handleSaveService
-      // For this test, it's simpler to assume the button being disabled *is* the test for this condition.
-      // Alternatively, if the button were enabled but isTestSuccessful was false:
-      // Let's mock isTestSuccessful to be false after a test (e.g. if test failed but button didn't re-disable)
-      // This scenario is less likely with current implementation.
-
-      // A simpler check for the explicit guard: just ensure save button is disabled if test hasn't passed.
-      expect(saveButton).toBeDisabled();
-
-      // If we want to ensure the toast.warn part of the guard is covered:
-      // This would require a scenario where the button IS enabled but isTestSuccessful is false.
-      // The current design correctly disables the button, so the guard `if (!isTestSuccessful)` inside handleSaveService
-      // acts as a secondary safety net, which is harder to trigger directly via userEvent on a disabled button.
-      // We'll assume the disabled state is sufficient for this test case as per current component logic.
+      const saveButton = screen.getByRole('button', { name: /保存服务/i });
+      const testButton = screen.getByRole('button', { name: /请先保存服务/i });
+      expect(saveButton).toBeEnabled(); // Should be enabled now
+      expect(testButton).toBeDisabled(); // Should be disabled until saved
     });
 
     it('should call createDeveloperService, call onServiceAdded, clear form, and show success on successful save', async () => {
@@ -288,7 +266,7 @@ describe('AddServiceForm', () => {
       };
       apiClient.createDeveloperService.mockResolvedValueOnce(mockSaveResponse);
 
-      await userEvent.click(screen.getByRole('button', { name: /请先测试接口/i }));
+      await userEvent.click(screen.getByRole('button', { name: /保存服务/i }));
 
       await waitFor(() => {
         expect(apiClient.createDeveloperService).toHaveBeenCalledTimes(1);
@@ -299,8 +277,8 @@ describe('AddServiceForm', () => {
         }));
         expect(mockOnServiceAdded).toHaveBeenCalledTimes(1);
         expect(toast.success).toHaveBeenCalledWith('Service saved successfully!');
-        expect(screen.getByLabelText(/服务名称/i).value).toBe(''); // Form cleared
-        expect(screen.getByText('等待测试...')).toBeInTheDocument(); // Test result cleared
+        expect(screen.getByLabelText(/服务名称/i).value).toBe('Final Service'); // Form not cleared
+        expect(screen.getByRole('button', { name: /发送测试请求/i })).toBeEnabled(); // Test button enabled after save
       });
     });
 
@@ -311,7 +289,7 @@ describe('AddServiceForm', () => {
       const mockError = { message: 'Failed to save service' };
       apiClient.createDeveloperService.mockRejectedValueOnce(mockError);
 
-      await userEvent.click(screen.getByRole('button', { name: /请先测试接口/i }));
+      await userEvent.click(screen.getByRole('button', { name: /保存服务/i }));
 
       await waitFor(() => {
         expect(apiClient.createDeveloperService).toHaveBeenCalledTimes(1);
@@ -333,7 +311,7 @@ describe('AddServiceForm', () => {
       };
       apiClient.createDeveloperService.mockResolvedValueOnce(mockLogicErrorResponse);
 
-      await userEvent.click(screen.getByRole('button', { name: /请先测试接口/i }));
+      await userEvent.click(screen.getByRole('button', { name: /保存服务/i }));
 
       await waitFor(() => {
         expect(apiClient.createDeveloperService).toHaveBeenCalledTimes(1);

@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { 
   SoundOutlined, 
   BulbOutlined, 
+  QuestionCircleOutlined,
   PlayCircleOutlined, 
   CheckCircleOutlined 
 } from '@ant-design/icons';
@@ -91,12 +92,13 @@ const ProgressCompleteLine = styled.div`
   width: ${props => {
     switch (props.stage) {
       case SessionStages.LISTENING:
-        return '25%';
+        return '20%';
       case SessionStages.INTERPRETING:
-        return '50%';
+        return '40%';
       case SessionStages.CONFIRMING:
+        return '60%';
       case SessionStages.EXECUTING:
-        return '75%';
+        return '80%';
       case SessionStages.RESULT:
         return '100%';
       default:
@@ -205,11 +207,18 @@ const ProgressBar = ({
                   stage === SessionStages.RESULT
       },
       { 
+        key: 'confirming', 
+        label: '确认中', 
+        icon: <QuestionCircleOutlined />,
+        active: stage === SessionStages.CONFIRMING,
+        completed: stage === SessionStages.EXECUTING || 
+                  stage === SessionStages.RESULT
+      },
+      { 
         key: 'executing', 
         label: '执行中', 
         icon: <PlayCircleOutlined />,
-        active: stage === SessionStages.CONFIRMING || 
-                stage === SessionStages.EXECUTING,
+        active: stage === SessionStages.EXECUTING,
         completed: stage === SessionStages.RESULT
       },
       { 

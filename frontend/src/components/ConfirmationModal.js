@@ -226,6 +226,7 @@ const ConfirmationModal = ({
       // 使用函数版本设置状态，防止引用旧状态
       const timer = setTimeout(() => {
         console.log("ConfirmationModal: 开始播放确认文本...");
+        console.log("ConfirmationModal: 调用栈:", new Error().stack);
         // 并行播放TTS（不阻塞语音监听）
         speak(confirmText, 'zh-CN', 1, 1, () => {
           console.log("ConfirmationModal: TTS播放完成，设置ttsFinished=true");
@@ -233,11 +234,12 @@ const ConfirmationModal = ({
           setShowButtons(true);
           console.log("ConfirmationModal: 显示按钮和语音输入选项");
         });
-      }, 300);
+      }, 100); // 减少延迟从300ms到100ms
       
       return () => {
         clearTimeout(timer);
-        cancelTTS();
+        // 只在对话框真正关闭时取消TTS，避免在React Strict Mode下过早取消
+        // cancelTTS();
       };
     }
     
@@ -372,8 +374,6 @@ const ConfirmationModal = ({
     return null;
   }
   
-  // 确保始终显示调试信息
-  const debugInfo = `ttsFinished: ${ttsFinished ? 'true' : 'false'} | showButtons: ${showButtons ? 'true' : 'false'} | isConfirmListening: ${isConfirmListening ? 'true' : 'false'}`;
   
   return (
     <ModalOverlay theme={theme} className="confirmation-dialog" data-testid="confirmation-modal">
@@ -386,13 +386,6 @@ const ConfirmationModal = ({
           {confirmText}
         </ModalText>
         
-        {/* 添加调试信息，帮助排查显示问题 */}
-        <div style={{ fontSize: '12px', color: 'gray', margin: '10px 0', textAlign: 'center' }}>
-          状态: {isTTSSpeaking ? '正在播放TTS' : '未播放TTS'} | 
-          按钮显示: {showButtons ? '是' : '否'} | 
-          TTS完成: {ttsFinished ? '是' : '否'} |
-          正在录音: {isConfirmListening ? '是' : '否'}
-        </div>
         
         {/* 使用普通HTML元素和内联样式，避免样式组件可能的问题 */}
         {(ttsFinished || !isTTSSpeaking) && !isConfirmListening && !useVoiceConfirmation && (
@@ -452,18 +445,6 @@ const ConfirmationModal = ({
           </ButtonGroup>
         )}
         
-        {/* 始终显示调试信息 */}
-        <div style={{
-          fontSize: '12px',
-          color: '#999',
-          margin: '8px 0 0 0',
-          padding: '4px',
-          backgroundColor: '#f5f5f5',
-          borderRadius: '4px',
-          textAlign: 'center',
-        }}>
-          {debugInfo}
-        </div>
       </ModalContent>
     </ModalOverlay>
   );

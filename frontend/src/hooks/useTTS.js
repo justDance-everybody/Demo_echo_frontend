@@ -1,6 +1,9 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { initTTS, getBestTWVoice, speakWithFix, speakStreaming } from '../utils/TtsPolyfill';
 
+// 全局标志，防止重复初始化
+let isTTSInitialized = false;
+
 /**
  * Custom Hook for Text-to-Speech (TTS) synthesis.
  * 提供文本到语音的合成功能，支持流式播放
@@ -18,11 +21,19 @@ const useTTS = () => {
     
     // 使用ref来存储speakStream函数引用，解决循环依赖问题
     const speakStreamRef = useRef(null);
+    
+    // 添加防重复调用机制
+    const lastSpeakTextRef = useRef('');
+    const lastSpeakTimeRef = useRef(0);
+    const isPlayingRef = useRef(false); // 播放锁，防止同时播放多个语音
 
     // 初始化语音修复
     useEffect(() => {
-        console.log("初始化语音修复...");
-        initTTS();
+        if (!isTTSInitialized) {
+            console.log("初始化语音修复...");
+            initTTS();
+            isTTSInitialized = true;
+        }
     }, []);
 
     // 初始化语音列表
@@ -125,15 +136,19 @@ const useTTS = () => {
     // 取消当前播放
     const cancel = useCallback(() => {
         if (synth) {
-            console.log("取消TTS播放");
+            console.log("取消TTS播放 - 调用栈:", new Error().stack);
+            console.log("取消TTS播放 - 当前状态:", { isSpeaking, isPlaying: isPlayingRef.current });
             synth.cancel(); // Stops current utterance and clears queue
             setIsSpeaking(false);
+            isPlayingRef.current = false; // 释放播放锁
             
             // 如果存在流式播放控制，也取消它
-            if (activeStreaming) {
-                activeStreaming.cancel();
-                setActiveStreaming(null);
-            }
+            setActiveStreaming(prev => {
+                if (prev) {
+                    prev.cancel();
+                }
+                return null;
+            });
             
             // 重置进度
             setProgress({ current: 0, total: 0 });
@@ -142,22 +157,38 @@ const useTTS = () => {
             return new Promise(resolve => setTimeout(resolve, 300));
         }
         return Promise.resolve();
-    }, [synth, activeStreaming]);
+    }, [synth]); // 移除activeStreaming依赖，使用函数式更新
 
     // 普通播放文本的函数（针对短文本，默认使用更快的语速）
     const speak = useCallback((text, lang = 'zh-CN', rate = 1.0, pitch = 1, onEnd) => {
-        // 判断是否应该使用流式播放（长文本且包含完整句子结构的文本）
-        if (text && text.length > 80 && speakStreamRef.current && (text.includes('。') || text.includes('！') || text.includes('？') || text.includes('；'))) {
-            return speakStreamRef.current(text, lang, rate, pitch, onEnd);
+        // 防重复调用：检查是否是相同的文本且在短时间内重复调用
+        const now = Date.now();
+        if (text === lastSpeakTextRef.current && (now - lastSpeakTimeRef.current) < 2000) {
+            console.log("检测到重复的TTS调用，忽略");
+            return false;
         }
+        
+        // 更新记录
+        lastSpeakTextRef.current = text;
+        lastSpeakTimeRef.current = now;
+        
+        // 暂时禁用流式播放，避免分割导致的复杂性和中断问题
+        // if (text && text.length > 80 && speakStreamRef.current && (text.includes('。') || text.includes('！') || text.includes('？') || text.includes('；'))) {
+        //     return speakStreamRef.current(text, lang, rate, pitch, onEnd);
+        // }
         
         // 如果当前正在播放，先清理并等待完成
         if (isSpeaking) {
+            console.log("检测到正在播放，先取消当前播放 - 调用栈:", new Error().stack);
+            console.log("当前播放状态:", { isSpeaking, isPlaying: isPlayingRef.current });
             return cancel().then(() => {
-                // 确保isSpeaking状态被更新
-                setTimeout(() => {
-                    return performSpeak();
-                }, 500); // 增加延迟时间，确保系统有足够时间响应
+                // 确保isSpeaking状态被更新，并等待更长时间
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        console.log("取消完成，开始新的播放");
+                        resolve(performSpeak());
+                    }, 800); // 增加延迟时间，确保系统有足够时间响应
+                });
             });
         } else {
             return performSpeak();
@@ -165,6 +196,12 @@ const useTTS = () => {
         
         // 实际执行语音播放的内部函数
         function performSpeak() {
+            // 检查播放锁
+            if (isPlayingRef.current) {
+                console.log("检测到正在播放中，忽略新的播放请求 - 调用栈:", new Error().stack);
+                return Promise.resolve();
+            }
+            
             console.log(`准备播放文本: "${text}", 语言: ${lang}, 语速: ${rate}, 音高: ${pitch}`);
             
             // 处理可选参数，如果第二个参数是函数，说明它是onEnd回调
@@ -193,6 +230,7 @@ const useTTS = () => {
                 
                 console.log("TTS播放完成，执行回调");
                 setIsSpeaking(false);
+                isPlayingRef.current = false; // 释放播放锁
                 if (onEnd && typeof onEnd === 'function') {
                     console.log("调用播放完成回调函数");
                     try {
@@ -209,8 +247,10 @@ const useTTS = () => {
             // 首先尝试使用修复的语音合成方法
             console.log("使用修复版语音合成函数...");
             
-            // 设置状态
+            // 设置状态和播放锁
+            console.log("设置播放状态和锁 - 调用栈:", new Error().stack);
             setIsSpeaking(true);
+            isPlayingRef.current = true;
             
             const speakSuccess = speakWithFix(text, bestVoice, rate, pitch, enhancedCallback);
             
@@ -288,7 +328,7 @@ const useTTS = () => {
                         if (synth.speaking) {
                             setIsSpeaking(true);
                         }
-                    }, 100);
+                    }, 50); // 减少延迟从100ms到50ms
                     
                     // 检查是否在合理时间内开始播放
                     const speakingCheckTimer = setTimeout(() => {
@@ -312,7 +352,7 @@ const useTTS = () => {
 
             return true;
         }
-    }, [synth, isSpeaking, selectVoice, bestVoice, cancel]);
+    }, [synth, isSpeaking, selectVoice, bestVoice]); // 移除cancel依赖，避免循环依赖
 
     // 流式播放长文本
     const speakStream = useCallback((text, lang = 'zh-CN', rate = 1.0, pitch = 1, onEnd) => {
@@ -482,7 +522,7 @@ const useTTS = () => {
                 activeStreaming.cancel();
             }
         };
-    }, [synth, isSpeaking, activeStreaming]);
+    }, []); // 空依赖数组，只在组件挂载时执行一次
 
     // 设置speakStreamRef.current以解决循环依赖问题
     useEffect(() => {

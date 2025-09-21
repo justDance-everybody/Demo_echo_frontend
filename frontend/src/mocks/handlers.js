@@ -351,58 +351,110 @@ export const handlers = [
   }),
 
   // NEW: Mock for testing an unsaved developer tool configuration
-  rest.post('/api/dev/tools/test', async (req, res, ctx) => {
-    const toolConfig = await req.json();
-    const { platformType, apiKey, difyAppId, cozeBotId, endpointUrl, testInput, userInputVar } = toolConfig;
+  rest.post('/api/v1/dev/tools/test', async (req, res, ctx) => {
+    const requestData = await req.json();
+    const { tool_config, test_data, timeout } = requestData;
+    
+    // Extract configuration from tool_config
+    const { name, platform_type, endpoint } = tool_config || {};
+    const { url: endpointUrl, auth_token: apiKey, app_id: difyAppId, bot_id: cozeBotId } = endpoint || {};
+    
+    // Extract test input from test_data
+    const testInput = test_data ? Object.values(test_data)[0] : '';
 
     if (!testInput) {
-      return res(ctx.status(400), ctx.json({ success: false, error: 'Test input is required.' }));
+      return res(ctx.status(400), ctx.json({ 
+        success: false, 
+        error: 'Test input is required.',
+        execution_time: 0,
+        timestamp: new Date().toISOString()
+      }));
     }
 
-    let responseData = { success: false, error: 'Unknown platform or configuration error.', raw_response: null };
+    let responseData = { 
+      success: false, 
+      error: 'Unknown platform or configuration error.', 
+      result: null,
+      execution_time: 0,
+      timestamp: new Date().toISOString()
+    };
 
-    if (platformType === 'dify') {
+    if (platform_type === 'dify') {
       if (apiKey && difyAppId && endpointUrl) {
         responseData = {
           success: true,
-          raw_response: {
+          result: {
             dify_answer: `Mock Dify response for '${testInput}' using app ${difyAppId}. This is a simulated test.`,
             conversation_id: `test_dify_conv_${uuidv4()}`,
-          }
+          },
+          execution_time: 1.2,
+          timestamp: new Date().toISOString()
         };
       } else {
         responseData.error = 'Dify configuration incomplete (API Key, App ID, or URL missing).';
       }
-    } else if (platformType === 'coze') {
+    } else if (platform_type === 'coze') {
       if (apiKey && cozeBotId && endpointUrl) {
         responseData = {
           success: true,
-          raw_response: {
+          result: {
             coze_message: `Mock Coze bot ${cozeBotId} response for '${testInput}'. Simulation successful.`,
             messages: [{ type: 'answer', content: `Mocked Coze: ${testInput}`}],
             conversation_id: `test_coze_conv_${uuidv4()}`,
-          }
+          },
+          execution_time: 1.5,
+          timestamp: new Date().toISOString()
         };
       } else {
         responseData.error = 'Coze configuration incomplete (API Key, Bot ID, or URL missing).';
       }
-    } else if (platformType === 'http') {
+    } else if (platform_type === 'http') {
       if (apiKey && endpointUrl) {
         responseData = {
           success: true,
-          raw_response: {
+          result: {
             generic_http_data: `Mock generic HTTP response for input '${testInput}' to URL ${endpointUrl}. Test OK.`,
             status_code: 200
-          }
+          },
+          execution_time: 0.8,
+          timestamp: new Date().toISOString()
         };
       } else {
         responseData.error = 'Generic HTTP configuration incomplete (API Key or URL missing).';
       }
     } else {
-      responseData.error = `Platform type '${platformType}' not supported for testing in mock.`;
+      responseData.error = `Platform type '${platform_type}' not supported for testing in mock.`;
     }
     await new Promise(resolve => setTimeout(resolve, 750)); // Simulate network delay
     return res(ctx.status(200), ctx.json(responseData));
+  }),
+
+  // 测试已保存的API服务
+  rest.post('/api/v1/dev/tools/:toolId/test', async (req, res, ctx) => {
+    const { toolId } = req.params;
+    const requestData = await req.json();
+    const { test_data, timeout } = requestData;
+    
+    console.log(`Mock testing saved tool ${toolId} with data:`, requestData);
+    
+    // 提取测试输入
+    const testInput = test_data ? Object.values(test_data)[0] : 'test input';
+    
+    // 模拟测试响应，符合API文档格式
+    const mockResponse = {
+      success: true,
+      result: {
+        tool_id: toolId,
+        test_input: testInput,
+        response: `Mock response for tool ${toolId} with input: ${testInput}`,
+        execution_time: 1.5,
+        timestamp: new Date().toISOString()
+      },
+      execution_time: 1.5,
+      timestamp: new Date().toISOString()
+    };
+    
+    return res(ctx.status(200), ctx.json(mockResponse));
   }),
 
   // Example for /api/dev/upload (placeholder)

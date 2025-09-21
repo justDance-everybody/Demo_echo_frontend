@@ -132,6 +132,7 @@ const AddServiceForm = ({ onServiceAdded }) => {
   const [isTestSuccessful, setIsTestSuccessful] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [saveError, setSaveError] = useState(null);
+  const [savedToolId, setSavedToolId] = useState(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -153,86 +154,39 @@ const AddServiceForm = ({ onServiceAdded }) => {
     setIsTestSuccessful(false);
     setIsTesting(false);
     setSaveError(null);
+    setSavedToolId(null);
   };
 
   const handleTestService = async () => {
+    // 检查是否已保存服务
+    if (!savedToolId) {
+      toast.error('请先保存服务，然后再进行测试。');
+      return;
+    }
+
     setIsTesting(true);
     setTestResult('正在测试中...');
     setSaveError(null);
 
-    const { 
-      serviceName, 
-      serviceDescription, 
-      platformType, 
-      endpointUrl, 
-      apiKey, 
-      difyAppId, 
-      cozeBotId, 
-      userInputVar,
-      testInput 
-    } = formData;
-
-    // 构建新的API payload结构
-    const toolConfig = {
-      name: serviceName,
-      description: serviceDescription,
-      type: platformType === 'dify' || platformType === 'coze' ? 'http' : platformType,
-      endpoint: {
-        url: endpointUrl,
-        platform_type: platformType,
-        user_input_variable: userInputVar || 'query',
-        auth_token: apiKey || '',
-      },
-      request_schema: {
-        type: "object",
-        properties: {
-          [userInputVar || 'query']: {
-            type: "string",
-            description: "用户输入内容"
-          }
-        },
-        required: [userInputVar || 'query']
-      },
-      response_schema: {
-        type: "object",
-        properties: {
-          success: { type: "boolean" },
-          data: { type: "object" },
-          message: { type: "string" }
-        }
-      },
-      server_name: serviceName,
-      is_public: false,
-      version: '1.0.0',
-      tags: [platformType, 'developer-tool']
-    };
-
-    // 添加平台特定的配置
-    if (platformType === 'dify' && difyAppId) {
-      toolConfig.endpoint.app_id = difyAppId;
-    }
-    if (platformType === 'coze' && cozeBotId) {
-      toolConfig.endpoint.bot_id = cozeBotId;
-    }
+    const { userInputVar, testInput } = formData;
 
     // 构建测试数据
     const testData = {};
     testData[userInputVar || 'query'] = testInput || '测试输入内容';
 
     const payload = {
-      tool_config: toolConfig,
       test_data: testData,
       timeout: 30
     };
 
     try {
-      console.log("Testing with payload:", JSON.stringify(payload, null, 2));
-      const response = await apiClient.testUnsavedDeveloperTool(payload);
+      console.log("Testing saved tool with ID:", savedToolId, "payload:", JSON.stringify(payload, null, 2));
+      const response = await apiClient.testSavedApiService(savedToolId, payload);
       
       if (response && response.status === 200 && response.data && response.data.success) {
         setTestResult(JSON.stringify(response.data.result || response.data, null, 2));
         setIsTestSuccessful(true);
-        toast.success('API测试成功！现在可以保存服务。');
+        toast.success('API测试成功！接口配置正确。');
       } else {
         setTestResult(JSON.stringify(response.data || { error: "测试失败" }, null, 2));
         setIsTestSuccessful(false);
@@ -250,13 +204,6 @@ const AddServiceForm = ({ onServiceAdded }) => {
   };
 
   const handleSaveService = async () => {
-    // 检查是否测试成功
-    if (!isTestSuccessful) {
-      setSaveError('请先进行接口测试，只有测试成功后才能保存服务。');
-      toast.error('请先进行接口测试，只有测试成功后才能保存服务。');
-      return;
-    }
-    
     setSaveError(null); // Clear previous save errors before attempting to save
 
     const { 
@@ -321,11 +268,15 @@ const AddServiceForm = ({ onServiceAdded }) => {
       // Check for successful status codes (200 OK or 201 Created)
       // Also, some APIs might return success messages in response.data.message or response.data.detail
       if (response && (response.status === 200 || response.status === 201)) {
-        toast.success(response.data?.message || response.data?.detail || '服务已成功保存！');
+        // 保存成功后，保存tool_id以便后续测试
+        const returnedToolId = response.data?.tool_id || serviceDataPayload.tool_id;
+        setSavedToolId(returnedToolId);
+        
+        toast.success(response.data?.message || response.data?.detail || '服务已成功保存！现在可以进行测试。');
         if (typeof onServiceAdded === 'function') {
             onServiceAdded(); // Callback to refresh the list in the parent component
         }
-        handleClearForm(); // Clear the form fields
+        // 不清空表单，保持数据以便测试
       } else {
         // This case handles scenarios where the server returns a 2xx status but indicates a logical error in the response body.
         const errorMsg = response.data?.detail || response.data?.message || '保存服务失败，但服务器未返回明确错误信息。';
@@ -415,13 +366,13 @@ const AddServiceForm = ({ onServiceAdded }) => {
       <TestSection>
         <h4>接口测试区</h4>
         <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: '1rem' }}>
-          <strong>重要：</strong>请先进行接口测试，只有测试成功后才能保存服务。
+          <strong>提示：</strong>请先保存服务，然后再进行接口测试。测试可以帮助验证配置是否正确。
         </p>
         <FormGroup>
             <label htmlFor="testInput">测试输入内容:</label>
             <input type="text" id="testInput" name="testInput" value={formData.testInput} onChange={handleChange} placeholder="输入测试文本..." disabled={isTesting} />
-            <PrimaryButton onClick={handleTestService} style={{marginTop: '0.5rem'}} disabled={isTesting}>
-              {isTesting ? '正在测试...' : '发送测试请求'}
+            <PrimaryButton onClick={handleTestService} style={{marginTop: '0.5rem'}} disabled={isTesting || !savedToolId}>
+              {isTesting ? '正在测试...' : savedToolId ? '发送测试请求' : '请先保存服务'}
             </PrimaryButton>
         </FormGroup>
         <FormGroup>
@@ -440,7 +391,7 @@ const AddServiceForm = ({ onServiceAdded }) => {
             color: '#2e7d32',
             fontSize: '0.9rem'
           }}>
-            ✅ 测试成功！现在可以保存服务了。
+            ✅ 测试成功！接口配置正确。
           </div>
         )}
       </TestSection>
@@ -448,13 +399,9 @@ const AddServiceForm = ({ onServiceAdded }) => {
       <ButtonGroup>
         <PrimaryButton 
           onClick={handleSaveService} 
-          disabled={isTesting || !isTestSuccessful}
-          style={{ 
-            backgroundColor: isTestSuccessful ? '' : '#ccc',
-            cursor: isTestSuccessful ? '' : 'not-allowed'
-          }}
+          disabled={isTesting}
         >
-          {isTestSuccessful ? '保存服务' : '请先测试接口'}
+          保存服务
         </PrimaryButton>
         <SecondaryButton onClick={handleClearForm} disabled={isTesting}>清空表单</SecondaryButton>
       </ButtonGroup>
