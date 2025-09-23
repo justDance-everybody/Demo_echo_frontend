@@ -8,8 +8,16 @@
  * 4. 实现伪流式播放以提高响应速度
  */
 
+// 全局标志，防止重复初始化
+let isTtsPolyfillInitialized = false;
+
 // 初始化后需要调用此函数
 export function initTTS() {
+  if (isTtsPolyfillInitialized) {
+    console.log("TTS修复已初始化，跳过重复初始化");
+    return true;
+  }
+  
   try {
     console.log("初始化TTS修复...");
     const synth = window.speechSynthesis;
@@ -69,6 +77,7 @@ export function initTTS() {
     }
     
     console.log("TTS修复初始化完成");
+    isTtsPolyfillInitialized = true;
     return true;
   } catch (error) {
     console.error("TTS修复初始化失败:", error);
@@ -281,7 +290,6 @@ export function speakStreaming(text, voice = null, rate = 1.3, pitch = 1, onSegm
   });
   
   let isCancelled = false;
-  let lastSegmentIndex = -1; // 添加跟踪最后成功播放的片段索引的变量
   
   const cancelStreaming = () => {
     console.log('取消流式播放');
@@ -318,7 +326,6 @@ export function speakStreaming(text, voice = null, rate = 1.3, pitch = 1, onSegm
       synth.cancel();
       
       if (onSegmentEnd) onSegmentEnd(index, segments.length);
-      lastSegmentIndex = index;
       
       // 继续播放下一片段
       setTimeout(() => playNext(index + 1), 10);
@@ -328,7 +335,6 @@ export function speakStreaming(text, voice = null, rate = 1.3, pitch = 1, onSegm
     utterance.onend = () => {
       clearTimeout(segmentTimeout);
       if (onSegmentEnd) onSegmentEnd(index, segments.length);
-      lastSegmentIndex = index;
       
       // 立即开始下一片段，减少间隙感
       playNext(index + 1);
@@ -344,12 +350,16 @@ export function speakStreaming(text, voice = null, rate = 1.3, pitch = 1, onSegm
     
     // 播放当前片段
     try {
-      // 播放前取消任何正在播放的内容
-      if (index > 0) {
+      // 只在必要时取消之前的播放，避免频繁中断
+      if (index > 0 && synth.speaking) {
         synth.cancel();
+        // 等待一小段时间确保取消完成
+        setTimeout(() => {
+          synth.speak(utterance);
+        }, 50);
+      } else {
+        synth.speak(utterance);
       }
-      
-      synth.speak(utterance);
     } catch (error) {
       console.error(`播放片段 ${index + 1} 时出错:`, error);
       
@@ -413,6 +423,7 @@ export function speakWithFix(text, voice = null, rate = 1.3, pitch = 1, onEnd = 
     // 设置事件处理
     utterance.onstart = () => {
       console.log(`TTS开始播放: ${text.substring(0, 30)}${text.length > 30 ? '...' : ''}`);
+      console.log("TTS onstart - 调用栈:", new Error().stack);
     };
     
     utterance.onend = () => {
@@ -428,6 +439,12 @@ export function speakWithFix(text, voice = null, rate = 1.3, pitch = 1, onEnd = 
     
     utterance.onerror = (event) => {
       console.error("TTS播放错误:", event.error);
+      console.error("TTS onerror - 调用栈:", new Error().stack);
+      console.error("TTS onerror - 当前合成器状态:", {
+        speaking: window.speechSynthesis?.speaking,
+        pending: window.speechSynthesis?.pending,
+        paused: window.speechSynthesis?.paused
+      });
       if (onEnd) {
         try {
           onEnd(); // 直接调用回调，不使用setTimeout
@@ -437,42 +454,33 @@ export function speakWithFix(text, voice = null, rate = 1.3, pitch = 1, onEnd = 
       }
     };
     
-    // 使用定时器解决某些浏览器的语音问题，但减少延迟
-    setTimeout(() => {
-      try {
-        synth.speak(utterance);
-        console.log("TTS speak方法已调用");
+     // 使用定时器解决某些浏览器的语音问题，增加延迟减少卡顿
+     setTimeout(() => {
+       try {
+         synth.speak(utterance);
+         console.log("TTS speak方法已调用");
         
-        // Chrome bug: 有时不会触发onend事件，优化超时时间计算
+        // Chrome bug: 有时不会触发onend事件，但超时机制过于激进
+        // 暂时禁用Chrome的超时机制，让TTS自然完成
         if (navigator.userAgent.indexOf('Chrome') !== -1) {
-          // 更合理的超时计算策略
-          // 基础时间 + 每字符时间
-          let baseTimeout = 2000; // 增加基础超时
-          let charTimeout = 300; // 增加每字符时间
-          let maxDuration = baseTimeout + text.length * charTimeout; 
+          console.log(`[TtsPolyfill] speakWithFix: Chrome detected, 禁用超时机制让TTS自然完成`);
           
-          // 限制最大超时时间，确保不超过Chrome的安全界限
-          maxDuration = Math.min(maxDuration, 30000); // 增加最大超时到30秒
-          
-          // 限制最小超时时间
-          maxDuration = Math.max(maxDuration, 3000); // 确保至少有3秒
-
-          console.log(`[TtsPolyfill] speakWithFix: Calculated Chrome timeout: ${maxDuration}ms for ${text.length} chars`);
-          
-          setTimeout(() => {
-            // 检查时需要确认 synth 对象仍然存在
-            if (window.speechSynthesis && window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
-              console.log("Chrome安全超时：强制结束语音播放");
-              synth.cancel();
-              if (onEnd) {
-                try {
-                  onEnd(); // 直接调用回调
-                } catch (e) {
-                  console.error("执行TTS 超时回调时出错:", e);
-                }
-              }
+          // 使用更温和的检测方式：定期检查但不强制取消
+          const checkInterval = setInterval(() => {
+            if (!window.speechSynthesis || !window.speechSynthesis.speaking) {
+              console.log("Chrome检测：TTS已自然完成");
+              clearInterval(checkInterval);
             }
-          }, maxDuration);
+          }, 1000);
+          
+          // 设置一个很长的超时作为最后的保险，但不会主动取消
+          setTimeout(() => {
+            clearInterval(checkInterval);
+            if (window.speechSynthesis && window.speechSynthesis.speaking) {
+              console.log("Chrome最终超时：TTS仍在播放，但不会强制取消");
+              // 不调用synth.cancel()，让TTS自然完成
+            }
+          }, 60000); // 60秒的最终超时，但不会强制取消
         }
         
         return true;
@@ -487,7 +495,7 @@ export function speakWithFix(text, voice = null, rate = 1.3, pitch = 1, onEnd = 
         }
         return false;
       }
-    }, 10); // 进一步减少到10ms
+     }, 200); // 增加延迟到200ms，让播放比合成稍微延迟一下，减少卡顿
     
     return true;
   } catch (error) {

@@ -284,6 +284,11 @@
   max-width: 600px;
   margin: 20px auto;
   padding: 0 20px;
+  position: fixed; /* 确保不被模态遮罩遮住 */
+  top: 50px;       /* 避开顶部状态栏 */
+  left: 0;
+  right: 0;
+  z-index: 1100;   /* 高于模态遮罩 z-index:1000 */
 }
 
 /* 状态指示器样式 - 会在StatusBar组件中覆盖 */

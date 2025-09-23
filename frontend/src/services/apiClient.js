@@ -494,15 +494,14 @@ const testSavedApiService = async (serviceId, testData) => {
 
 // 新增: 测试未保存的API服务配置
 const testUnsavedDeveloperTool = async (toolConfiguration) => {
-  // toolConfiguration should include all form fields + the testInput value
-  // Example: { serviceName: 'Test', platformType: 'dify', ..., testInput: 'hello' }
+  // toolConfiguration should include tool_config, test_data, and timeout
+  // Format: { tool_config: {...}, test_data: {...}, timeout: 30 }
   try {
     console.log("测试未保存的服务配置:", toolConfiguration);
-    // This endpoint /api/dev/tools/test is NEW and needs to be implemented in the backend
-    // and mocked in MSW. It receives the full tool config and test input.
+    // 使用与API文档一致的格式
     const response = await api.post('/api/v1/dev/tools/test', toolConfiguration);
     console.log("测试未保存的服务响应:", response.data);
-    return response.data; // Expected: { success: boolean, raw_response?: any, error?: string }
+    return response; // Return full response object to match API documentation format
   } catch (error) {
     console.error('测试未保存的服务配置失败:', error);
     throw error; // Let the interceptor handle formatting the error

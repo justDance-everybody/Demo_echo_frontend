@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useMemo, useRef } from 'react';
 import styled from 'styled-components';
 import { 
   CheckCircleOutlined, 
@@ -137,6 +137,14 @@ const ResultDisplay = ({
   const { theme } = useTheme();
   const { speak, cancel: cancelTTS, isSpeaking } = useTTS();
   
+  // 添加防重复播放的ref
+  const hasSpokenRef = useRef(false);
+  const lastSpokenTextRef = useRef('');
+  const isPlayingRef = useRef(false); // 防止重复播放的锁
+  
+  // 使用一个全局的播放状态，防止React Strict Mode导致的重复播放
+  const globalPlayStateRef = useRef(new Set());
+  
   // 根据status获取图标
   const getStatusIcon = useCallback(() => {
     switch (status) {
@@ -152,23 +160,71 @@ const ResultDisplay = ({
   }, [status]);
   
   // 提取并确认要播报的消息
-  const ttsMessage = message || (data && data.tts_message) || (
-    status === 'success' ? '操作成功完成。' :
-    status === 'error' ? '操作失败，请稍后重试。' :
-    '已完成。'
-  );
+  const ttsMessage = useMemo(() => {
+    return message || (data && data.tts_message) || (
+      status === 'success' ? '操作成功完成。' :
+      status === 'error' ? '操作失败，请稍后重试。' :
+      '已完成。'
+    );
+  }, [message, data?.tts_message, status]);
   
   // 自动朗读结果消息
   useEffect(() => {
-    if (autoSpeak && ttsMessage && !isSpeaking) {
-      console.log("ResultDisplay: Attempting to speak result message.");
-      speak(ttsMessage);
+    console.log("ResultDisplay: useEffect被调用");
+    console.log("ResultDisplay: 当前状态:", { 
+      autoSpeak, 
+      hasTtsMessage: !!ttsMessage, 
+      ttsMessage: ttsMessage?.substring(0, 50) + '...', 
+      isSpeaking, 
+      hasSpoken: hasSpokenRef.current, 
+      isPlaying: isPlayingRef.current,
+      lastSpokenText: lastSpokenTextRef.current?.substring(0, 50) + '...',
+      isDifferentText: ttsMessage !== lastSpokenTextRef.current 
+    });
+    
+    // 检查是否已经播放过相同的文本
+    if (autoSpeak && ttsMessage && !isSpeaking && !hasSpokenRef.current && !isPlayingRef.current && ttsMessage !== lastSpokenTextRef.current) {
+      // 使用全局状态防止重复播放
+      const messageKey = ttsMessage.substring(0, 100); // 使用前100个字符作为唯一标识
+      if (globalPlayStateRef.current.has(messageKey)) {
+        console.log("ResultDisplay: 该消息已在全局状态中播放过，跳过");
+        return;
+      }
+      
+      console.log("ResultDisplay: 满足播放条件，开始播放");
+      console.log("ResultDisplay: 调用栈:", new Error().stack);
+      hasSpokenRef.current = true;
+      lastSpokenTextRef.current = ttsMessage;
+      isPlayingRef.current = true; // 设置播放锁
+      globalPlayStateRef.current.add(messageKey); // 添加到全局状态
+      
+      // 直接播放，不使用setTimeout，避免React Strict Mode清理定时器
+      console.log("ResultDisplay: 立即开始播放TTS");
+      speak(ttsMessage, 'zh-CN', 1, 1, () => {
+        console.log("ResultDisplay: TTS播放完成，释放播放锁");
+        isPlayingRef.current = false; // 释放播放锁
+        // 延迟清理全局状态，避免立即重复播放
+        setTimeout(() => {
+          globalPlayStateRef.current.delete(messageKey);
+        }, 1000);
+      });
+      
+      // 不需要清理函数，因为不再使用定时器
+    } else {
+      console.log("ResultDisplay: 不满足播放条件，原因:", {
+        autoSpeak: autoSpeak ? "✓" : "✗",
+        hasTtsMessage: ttsMessage ? "✓" : "✗", 
+        notSpeaking: !isSpeaking ? "✓" : "✗",
+        notSpoken: !hasSpokenRef.current ? "✓" : "✗",
+        notPlaying: !isPlayingRef.current ? "✓" : "✗",
+        isDifferentText: ttsMessage !== lastSpokenTextRef.current ? "✓" : "✗"
+      });
     }
-    // 组件卸载时停止 TTS
-    return () => {
-      cancelTTS();
-    };
-  }, [ttsMessage, autoSpeak, speak, isSpeaking, cancelTTS]);
+    // 组件卸载时停止 TTS - 注释掉避免在Strict Mode下过早取消
+    // return () => {
+    //   cancelTTS();
+    // };
+  }, [ttsMessage, autoSpeak, isSpeaking]); // 移除speak和cancelTTS依赖，避免无限循环
   
   // 格式化结果详情（优先展示 raw_data，其次 summary，再回退到结构化格式）
   const formatDetails = useCallback(() => {

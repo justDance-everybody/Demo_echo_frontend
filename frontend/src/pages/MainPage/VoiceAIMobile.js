@@ -170,10 +170,10 @@ const VoiceAIMobile = () => {
           await new Promise(resolve => setTimeout(resolve, 300));
         }
         
-        // 播放确认文本
-        console.log(`开始播放确认文本: "${confirmMessage}"`);
-        speak(confirmMessage);
-        setSpeaking(true);
+        // 不在这里播放确认文本，让ConfirmationModal来处理
+        // 避免重复播放导致的冲突
+        console.log(`准备显示确认对话框，文本: "${confirmMessage}"`);
+        setSpeaking(false); // 确保状态正确
       } else if (response.content) {
         // 直接响应
         setResult(response.content);

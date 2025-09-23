@@ -267,11 +267,11 @@ const MainPage = () => {
                   || undefined;
                 setResultData({ status: 'success', data: execResult.data, message: uiMessage });
                 
-                console.log(`[Session: ${execResult.sessionId || currentSessionId}] 即将播报结果: "${textToSpeak}"`);
+                console.log(`[Session: ${execResult.sessionId || currentSessionId}] 准备显示结果，让ResultDisplay处理TTS播放`);
                 
-                // 使用增强的流式语音播报，确保状态正确更新
-                // 仅在播报完成后将状态置为 idle，不立即清空结果，方便用户查看
-                speak(textToSpeak, () => setStatus('idle'));
+                // 不在这里直接播放TTS，让ResultDisplay统一处理
+                // 避免与ResultDisplay的autoSpeak冲突
+                setStatus('idle');
             } else {
                 console.error(`[Session: ${execResult.sessionId || currentSessionId}] Tool execution failed:`, execResult.error);
                 const message = `抱歉，执行操作时失败：${execResult.error?.message || '未知错误'}`;
@@ -654,7 +654,7 @@ const MainPage = () => {
                                     status={resultData.status}
                                     data={resultData.data} 
                                     message={resultData.message}
-                                    autoSpeak={true}
+                                    autoSpeak={!isConfirmModalOpen} // 当显示确认对话框时禁用自动播放
                                     onDismiss={handleReset}
                                 />
                             </motion.div>
