@@ -92,15 +92,15 @@ const ProgressCompleteLine = styled.div`
   width: ${props => {
     switch (props.stage) {
       case SessionStages.LISTENING:
-        return '20%';
+        return '20%';     // 1/5
       case SessionStages.INTERPRETING:
-        return '40%';
+        return '40%';     // 2/5
       case SessionStages.CONFIRMING:
-        return '60%';
+        return '60%';     // 3/5
       case SessionStages.EXECUTING:
-        return '80%';
+        return '80%';     // 4/5
       case SessionStages.RESULT:
-        return '100%';
+        return '100%';    // 5/5 - 完成
       default:
         return '0%';
     }
@@ -185,7 +185,7 @@ const ProgressBar = ({
   
   // 如果有stage参数，显示多步流程进度条
   if (stage && Object.values(SessionStages).includes(stage)) {
-    // 定义阶段
+    // 定义阶段 - 对应SessionStages的6个阶段
     const stages = [
       { 
         key: 'listening', 
@@ -222,8 +222,8 @@ const ProgressBar = ({
         completed: stage === SessionStages.RESULT
       },
       { 
-        key: 'completed', 
-        label: '完成', 
+        key: 'result', 
+        label: '结果', 
         icon: <CheckCircleOutlined />,
         active: stage === SessionStages.RESULT,
         completed: false

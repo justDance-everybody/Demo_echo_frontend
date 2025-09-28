@@ -85,6 +85,10 @@ const MainPage = () => {
     const getCurrentProgressStage = useCallback(() => {
         switch (status) {
             case 'idle':
+                // 如果有结果数据，说明刚刚完成，保持显示完成状态
+                if (resultData) {
+                    return FOUR_STAGES.COMPLETED;
+                }
                 return null; // 空闲状态不显示进度条
             case 'listening':
                 return FOUR_STAGES.UNDERSTANDING; // 开始录音时显示理解阶段

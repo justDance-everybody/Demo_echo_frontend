@@ -126,6 +126,9 @@ const VoiceAssistant = () => {
     // 重置会话状态
     resetSession();
     
+    // 保持显示完成状态的进度条
+    updateStage(SessionStages.RESULT);
+    
     // 关闭确认对话框
     setShowConfirmation(false);
   };
@@ -135,6 +138,9 @@ const VoiceAssistant = () => {
     // 重置会话状态
     resetSession();
     
+    // 保持显示完成状态的进度条
+    updateStage(SessionStages.RESULT);
+    
     // 关闭确认对话框
     setShowConfirmation(false);
   };
@@ -143,6 +149,9 @@ const VoiceAssistant = () => {
   const handleContinue = () => {
     // 创建新会话
     createNewSession();
+    
+    // 保持显示完成状态的进度条
+    updateStage(SessionStages.RESULT);
     
     // 关闭结果显示
     setShowResult(false);
