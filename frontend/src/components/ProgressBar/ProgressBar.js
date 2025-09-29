@@ -2,18 +2,19 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import './ProgressBar.css';
 
-// 定义四个阶段
+// 定义五个阶段 - 对应SessionStages
 const STAGES = [
     { key: 'listening', label: '识别中', icon: '🎤' },
-    { key: 'thinking', label: '理解中', icon: '🧠' },
+    { key: 'interpreting', label: '理解中', icon: '🧠' },
+    { key: 'confirming', label: '确认中', icon: '❓' },
     { key: 'executing', label: '执行中', icon: '⚙️' },
-    { key: 'completed', label: '完成', icon: '✅' }
+    { key: 'result', label: '完成', icon: '✅' }
 ];
 
 /**
  * 进度条组件
  * @param {Object} props - 组件属性
- * @param {string} props.currentStage - 当前阶段 ('listening', 'thinking', 'executing', 'completed', 'idle')
+ * @param {string} props.currentStage - 当前阶段 ('listening', 'interpreting', 'confirming', 'executing', 'result', 'idle')
  * @param {boolean} props.visible - 是否显示进度条
  * @param {string} props.className - 额外的CSS类名
  * @param {Object} props.customLabels - 自定义阶段标签
@@ -39,7 +40,7 @@ const ProgressBar = ({
 
     // 计算进度百分比
     const getProgressPercentage = () => {
-        if (currentStage === 'completed') {
+        if (currentStage === 'result') {
             return 100;
         }
         return ((currentStageIndex + 1) / STAGES.length) * 100;
@@ -73,7 +74,7 @@ const ProgressBar = ({
                 {STAGES.map((stage, index) => {
                     const isActive = index <= currentStageIndex;
                     const isCurrent = index === currentStageIndex;
-                    const isCompleted = index < currentStageIndex || currentStage === 'completed';
+                    const isCompleted = index < currentStageIndex || currentStage === 'result';
 
                     return (
                         <motion.div
@@ -97,7 +98,7 @@ const ProgressBar = ({
                             </div>
 
                             {/* 当前阶段的动画指示器 */}
-                            {isCurrent && currentStage !== 'completed' && (
+                            {isCurrent && currentStage !== 'result' && (
                                 <motion.div
                                     className="stage-pulse"
                                     animate={{
@@ -125,9 +126,10 @@ const ProgressBar = ({
                 transition={{ duration: 0.3 }}
             >
                 {currentStage === 'listening' && '正在识别您的语音...'}
-                {currentStage === 'thinking' && '正在理解您的意图...'}
+                {currentStage === 'interpreting' && '正在理解您的意图...'}
+                {currentStage === 'confirming' && '等待您的确认...'}
                 {currentStage === 'executing' && '正在执行操作...'}
-                {currentStage === 'completed' && '操作已完成！'}
+                {currentStage === 'result' && '操作已完成！'}
             </motion.div>
         </motion.div>
     );
