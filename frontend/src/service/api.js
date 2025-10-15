@@ -1,7 +1,7 @@
 import axios from 'axios';
 import apiClient from './apiClient';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
 
 // 创建axios实例
 const api = axios.create({
@@ -171,4 +171,4 @@ export const chatAPI = {
 };
 
 // 导出legacy API实例
-export default api; 
+export default api;

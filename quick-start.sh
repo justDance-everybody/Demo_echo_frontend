@@ -4,10 +4,10 @@ echo "🚀 Echo AI 快速启动脚本"
 echo "======================"
 
 # 检查是否在正确目录
-if [ ! -d "Demo_echo_frontend/frontend" ]; then
+if [ ! -d "frontend" ]; then
     echo "❌ 错误：请在项目根目录运行此脚本"
     echo "当前目录：$(pwd)"
-    echo "期望目录结构：./Demo_echo_frontend/frontend/"
+    echo "期望目录结构：./frontend/"
     exit 1
 fi
 
@@ -34,7 +34,7 @@ fi
 
 # 切换到前端目录
 echo "📂 进入前端目录..."
-cd Demo_echo_frontend/frontend
+cd frontend
 
 # 检查依赖
 if [ ! -d "node_modules" ]; then
@@ -56,4 +56,4 @@ echo "🎯 启动中..."
 echo "按 Ctrl+C 停止服务器"
 echo ""
 
-npm start 
+npm start

@@ -192,6 +192,14 @@ src/
 - **配置管理**：API密钥、端点配置、参数映射
 - **测试工具**：内置API调用测试，实时验证
 
+#### 表单字段要求（重要）
+提交 API 工具时，请确保字段符合以下规范以提高 AI 识别准确率：
+
+- **名称**（2-30字）：简洁明了，如"心理咨询助手"、"天气查询"
+- **描述**（20-200字）：必须包含 ①工具功能 ②使用场景 ③关键词示例（用引号标注）
+
+**示例**：`"专业心理咨询工具。当用户表达负面情绪（如悲伤、焦虑）或需要情感支持时使用。适用场景：倾诉烦恼、寻求安慰等。"`
+
 ### 🎨 完整主题系统
 
 #### 主题切换 (`ThemeToggle`)
@@ -265,12 +273,12 @@ const API_CONFIG = {
 
 // 核心接口
 const API_ENDPOINTS = {
-  login: '/auth/token',        // POST - 用户登录（form-data格式）
-  me: '/auth/me',             // GET - 获取用户信息
-  interpret: '/interpret',     // POST - 意图解析
-  execute: '/execute',        // POST - 工具执行
-  tools: '/tools',            // GET - 获取工具列表
-  devTools: '/dev/tools'      // GET - 开发者工具管理
+  login: '/auth/token',                // POST - 用户登录（form-data格式）
+  me: '/auth/me',                     // GET - 获取用户信息
+  interpret: '/interpret',             // POST - 意图解析
+  tools: '/tools',                    // GET - 获取工具列表
+  execute: '/tools/execute',          // POST - 工具执行
+  devIntegrations: '/dev/integrations' // GET/POST/PUT/DELETE - 开发者 API 集成管理
 };
 ```
 

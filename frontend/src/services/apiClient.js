@@ -266,7 +266,7 @@ const execute = async (toolId, params, sessionId, userId) => {
         
         console.log("准备发送execute请求数据:", requestData);
         
-        const response = await api.post('/api/v1/execute', requestData);
+        const response = await api.post('/api/v1/tools/execute', requestData);
         
         console.log("Execute API Response:", response);
         
@@ -329,7 +329,7 @@ const getDeveloperServices = async (params = {}) => {
     if (params.is_public !== undefined) queryParams.append('is_public', params.is_public);
     if (params.search) queryParams.append('search', params.search);
     
-    const url = `/api/v1/dev/tools${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const url = `/api/v1/dev/integrations${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     const response = await api.get(url);
     
     console.log("开发者工具列表响应:", response.data);
@@ -351,7 +351,7 @@ const getDeveloperServices = async (params = {}) => {
 const createDeveloperService = async (serviceData) => {
   try {
     console.log("创建新服务...", serviceData);
-    const response = await api.post('/api/v1/dev/tools', serviceData);
+    const response = await api.post('/api/v1/dev/integrations', serviceData);
     console.log("创建服务响应:", response.status, response.data);
     // 返回完整响应，便于上层用 status 做判断
     return response;
@@ -365,7 +365,7 @@ const createDeveloperService = async (serviceData) => {
 const getDeveloperServiceById = async (serviceId) => {
   try {
     console.log(`获取开发者服务ID: ${serviceId} 的详情`);
-    const response = await api.get(`/api/v1/dev/tools/${serviceId}`);
+    const response = await api.get(`/api/v1/dev/integrations/${serviceId}`);
     console.log("开发者服务详情响应:", response.data);
     return response.data;
   } catch (error) {
@@ -378,7 +378,7 @@ const getDeveloperServiceById = async (serviceId) => {
 const updateDeveloperService = async (toolId, updateData) => {
   try {
     console.log(`更新开发者工具ID: ${toolId}`, updateData);
-    const response = await api.put(`/api/v1/dev/tools/${toolId}`, updateData);
+    const response = await api.put(`/api/v1/dev/integrations/${toolId}`, updateData);
     console.log("更新工具响应:", response.status, response.data);
     // 返回完整响应，便于上层用 status 做判断
     return response;
@@ -392,7 +392,7 @@ const updateDeveloperService = async (toolId, updateData) => {
 const deleteDeveloperService = async (toolId) => {
   try {
     console.log(`删除开发者工具ID: ${toolId}`);
-    const response = await api.delete(`/api/v1/dev/tools/${toolId}`);
+    const response = await api.delete(`/api/v1/dev/integrations/${toolId}`);
     console.log("删除工具响应:", response.status, response.data);
     // 返回完整响应，便于上层用 status 做判断
     return response;
@@ -411,7 +411,7 @@ const testDeveloperTool = async (toolId, testData, timeout = 30) => {
       test_data: testData,
       timeout: timeout
     };
-    const response = await api.post(`/api/v1/dev/tools/${toolId}/test`, payload);
+    const response = await api.post(`/api/v1/dev/integrations/${toolId}/test`, payload);
     console.log("测试工具响应:", response.status, response.data);
     return response;
   } catch (error) {
@@ -428,7 +428,7 @@ const getDeveloperTools = async ({ page = 1, pageSize = 10, status, isPublic, se
     if (typeof isPublic === 'boolean') params.is_public = isPublic;
     if (search) params.search = search;
 
-    const response = await api.get('/api/v1/dev/tools', { params });
+    const response = await api.get('/api/v1/dev/integrations', { params });
     return response.data; // 期望结构: { tools: [...], total, page, page_size }
   } catch (error) {
     console.error('获取开发者工具列表失败:', error);
@@ -483,7 +483,7 @@ const createDeveloperApplication = async (applicationData) => {
 const testSavedApiService = async (serviceId, testData) => {
   try {
     console.log(`测试已保存的开发者服务ID: ${serviceId}`, testData);
-    const response = await api.post(`/api/v1/dev/tools/${serviceId}/test`, testData);
+    const response = await api.post(`/api/v1/dev/integrations/${serviceId}/test`, testData);
     console.log("测试服务响应:", response.data);
     return response.data;
   } catch (error) {
@@ -498,8 +498,8 @@ const testUnsavedDeveloperTool = async (toolConfiguration) => {
   // Format: { tool_config: {...}, test_data: {...}, timeout: 30 }
   try {
     console.log("测试未保存的服务配置:", toolConfiguration);
-    // 使用与API文档一致的格式
-    const response = await api.post('/api/v1/dev/tools/test', toolConfiguration);
+    // 使用重构后的API路径
+    const response = await api.post('/api/v1/dev/integrations/test', toolConfiguration);
     console.log("测试未保存的服务响应:", response.data);
     return response; // Return full response object to match API documentation format
   } catch (error) {
